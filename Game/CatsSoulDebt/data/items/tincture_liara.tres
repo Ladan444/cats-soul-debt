@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_item_placeholder.png" id="1_w7hmb"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_c6h15"]
+
+[resource]
+script = ExtResource("2_c6h15")
+id = &"tincture_liara"
+name = "Настойка Лиары"
+category = 1
+icon = ExtResource("1_w7hmb")
+description = "Горькая настойка по рецепту Лиары. Восстанавливает 30 HP."
+heal = 30.0
+max_stack = 9

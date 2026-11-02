@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_item_placeholder.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"graf_pie"
+name = "Пирог графа"
+category = 1
+icon = ExtResource("1_icon")
+description = "Круглый румяный пирог с золотой коркой. Тёплый, хоть и лежал в сумке. Восстанавливает 50 HP."
+heal = 50.0
+energy = 0.0
+use_time = 1.0
+max_stack = 3

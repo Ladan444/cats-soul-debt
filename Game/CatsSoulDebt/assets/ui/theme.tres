@@ -1,0 +1,42 @@
+[gd_resource type="Theme" format=3 uid="uid://dx4im3o0qblmn"]
+
+[ext_resource type="Texture2D" uid="uid://bxbtwqjstjgr8" path="res://assets/ui/panel_wood.png" id="1_fenpc"]
+[ext_resource type="Texture2D" uid="uid://clu6cwondyuca" path="res://assets/ui/panel_parchment.png" id="2_omlnh"]
+[ext_resource type="FontFile" uid="uid://porvy6ddi3vn" path="res://assets/fonts/public_pixel/PublicPixel.ttf" id="3_lvrds"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_im0sm"]
+content_margin_left = 14.0
+content_margin_top = 14.0
+content_margin_right = 14.0
+content_margin_bottom = 14.0
+texture = ExtResource("1_fenpc")
+texture_margin_left = 12.0
+texture_margin_top = 12.0
+texture_margin_right = 12.0
+texture_margin_bottom = 12.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_7h6bm"]
+content_margin_left = 7.0
+content_margin_top = 7.0
+content_margin_right = 7.0
+content_margin_bottom = 7.0
+texture = ExtResource("2_omlnh")
+texture_margin_left = 5.0
+texture_margin_top = 5.0
+texture_margin_right = 5.0
+texture_margin_bottom = 5.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+[resource]
+default_font = ExtResource("3_lvrds")
+default_font_size = 8
+Label/colors/font_color = Color(0.9019608, 0.8392157, 0.6901961, 1)
+Label/colors/font_outline_color = Color(0.16470589, 0.11764706, 0.09411765, 1)
+PanelContainer/styles/panel = SubResource("StyleBoxTexture_im0sm")
+ParchmentLabel/base_type = &"Label"
+ParchmentLabel/colors/font_color = Color(0.16470589, 0.11764706, 0.09411765, 1)
+ParchmentPanel/base_type = &"PanelContainer"
+ParchmentPanel/styles/panel = SubResource("StyleBoxTexture_7h6bm")

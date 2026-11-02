@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_ilza_knot.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"ilza_knot"
+name = "Узелок Ильзы"
+category = 0
+slot = 4
+icon = ExtResource("1_icon")
+description = "Льняной узелок с сухим клевером. Пахнет домом."
+stats = {
+"max_hp": 15
+}
+heal = 0.0
+max_stack = 1

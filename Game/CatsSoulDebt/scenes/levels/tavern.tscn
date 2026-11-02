@@ -1,0 +1,154 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/levels/tavern_level.gd" id="1_d8nvo"]
+[ext_resource type="PackedScene" path="res://assets/levels/tavern.glb" id="2_x2bhi"]
+[ext_resource type="Script" path="res://scripts/environment/atmosphere_blender.gd" id="3_p8t82"]
+[ext_resource type="Script" path="res://scripts/environment/atmosphere_preset.gd" id="4_wes3e"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="5_vhjdm"]
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="6_36jar"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ray/ray_combat.png" id="7_0xieq"]
+[ext_resource type="Texture2D" path="res://assets/sprites/velmor/velmor_combat.png" id="8_86ufg"]
+[ext_resource type="Texture2D" path="res://assets/sprites/liara/liara_combat.png" id="9_uvlb8"]
+[ext_resource type="Script" path="res://scripts/camera/diorama_camera.gd" id="10_ahqxx"]
+[ext_resource type="Script" path="res://scripts/levels/velmor_npc.gd" id="11_qopiv"]
+[ext_resource type="Script" path="res://scripts/environment/ambience.gd" id="12_lx2pu"]
+[ext_resource type="Script" path="res://scripts/levels/level_exit.gd" id="13_qc0wm"]
+[ext_resource type="Script" path="res://scripts/ui/ui_scaler.gd" id="14_igie3"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="15_5py2i"]
+[ext_resource type="Script" path="res://scripts/ui/touch_controls.gd" id="16_s737i"]
+[ext_resource type="Script" path="res://scripts/ui/debug_hud.gd" id="17_v6n05"]
+[ext_resource type="Script" path="res://scripts/ui/book/book.gd" id="18_uwk8b"]
+[ext_resource type="Resource" path="res://data/maps/tavern.tres" id="19_rle8l"]
+[ext_resource type="Script" path="res://scripts/journal/map_tracker.gd" id="20_yp3mo"]
+[ext_resource type="Script" path="res://scripts/ui/dialogue_box.gd" id="21_thrq7"]
+[ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="22_c2taf"]
+
+[sub_resource type="Environment" id="Environment_1dgky"]
+background_mode = 1
+ambient_light_source = 2
+tonemap_mode = 2
+ssao_enabled = true
+ssao_intensity = 1.8
+glow_enabled = true
+glow_bloom = 0.15
+fog_enabled = true
+adjustment_enabled = true
+
+[sub_resource type="Resource" id="Resource_jjt5t"]
+script = ExtResource("4_wes3e")
+zone_name = "Таверна «Красная черепица»"
+hub = true
+start_x = -1000.0
+background_color = Color(0.078431375, 0.047058824, 0.03137255, 1)
+ambient_color = Color(0.6, 0.6, 0.66, 1)
+ambient_energy = 0.34
+fog_color = Color(0.2, 0.17, 0.15, 1)
+fog_density = 0.01
+glow_intensity = 0.6
+saturation = 0.88
+
+[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_3jai0"]
+dof_blur_far_enabled = true
+dof_blur_far_distance = 18.0
+dof_blur_far_transition = 8.0
+dof_blur_amount = 0.08
+
+[node name="Tavern" type="Node3D" unique_id=1096570085]
+script = ExtResource("1_d8nvo")
+player_path = NodePath("Player")
+geometry_path = NodePath("Geometry")
+metadata/minimap = {
+"reveal": false,
+"zoom": 2.5
+}
+
+[node name="Geometry" type="Node3D" parent="." unique_id=7302086 instance=ExtResource("2_x2bhi")]
+
+[node name="Atmosphere" type="WorldEnvironment" parent="." unique_id=1161429961]
+environment = SubResource("Environment_1dgky")
+script = ExtResource("3_p8t82")
+target_path = NodePath("../Player")
+presets = Array[ExtResource("4_wes3e")]([SubResource("Resource_jjt5t")])
+
+[node name="WindowLight" type="DirectionalLight3D" parent="." unique_id=499955691]
+transform = Transform3D(-0.9396926, -0.21984634, 0.26200268, 0, 0.76604444, 0.6427876, -0.3420202, 0.60402274, -0.7198463, 0, 0, 0)
+light_color = Color(0.9, 0.93, 1, 1)
+light_energy = 0.35
+shadow_enabled = true
+
+[node name="Player" type="CharacterBody3D" parent="." unique_id=818064200 instance=ExtResource("5_vhjdm")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.2, -2.4)
+script = ExtResource("6_36jar")
+debug_skins = Array[Texture2D]([ExtResource("7_0xieq"), ExtResource("8_86ufg"), ExtResource("9_uvlb8")])
+debug_skin_names = PackedStringArray("Рэй", "Вельмор", "Лиара")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=74468]
+transform = Transform3D(1, 0, 0, 0, 0.7739573, 0.6332378, 0, -0.6332378, 0.7739573, 4.5, 9, 8.6)
+attributes = SubResource("CameraAttributesPractical_3jai0")
+fov = 30.0
+script = ExtResource("10_ahqxx")
+target_path = NodePath("../Player")
+
+[node name="Velmor" type="Node3D" parent="." unique_id=982413691]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -3.9)
+script = ExtResource("11_qopiv")
+sheet = ExtResource("8_86ufg")
+lines = PackedStringArray()
+
+[node name="Ambience" type="Node3D" parent="." unique_id=1312160846]
+script = ExtResource("12_lx2pu")
+player_path = NodePath("../Player")
+geometry_path = NodePath("../Geometry")
+outdoor = false
+
+[node name="ExitToVillage" type="Area3D" parent="." unique_id=748881152]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 5.6)
+script = ExtResource("13_qc0wm")
+target_scene = "res://scenes/levels/world.tscn"
+target_position = Vector3(0, 4.7513766, -22.775)
+size = Vector3(3, 3, 0.8)
+label = "↓ на площадь"
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=2075006916]
+
+[node name="UIScaler" type="Control" parent="HUD" unique_id=1745662948]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("14_igie3")
+
+[node name="HUD" type="Control" parent="HUD/UIScaler" unique_id=625149352]
+anchors_preset = 0
+script = ExtResource("15_5py2i")
+atmosphere_path = NodePath("../../../Atmosphere")
+
+[node name="TouchControls" type="Control" parent="HUD/UIScaler" unique_id=601364931]
+anchors_preset = 0
+script = ExtResource("16_s737i")
+
+[node name="DebugHint" type="Label" parent="HUD/UIScaler" unique_id=2142782647]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 44.0
+offset_right = 6.0
+offset_bottom = 44.0
+theme_override_colors/font_outline_color = Color(0.16470589, 0.11764706, 0.09411765, 1)
+theme_override_constants/outline_size = 2
+script = ExtResource("17_v6n05")
+player_path = NodePath("../../../Player")
+atmosphere_path = NodePath("../../../Atmosphere")
+
+[node name="Book" type="CanvasLayer" parent="." unique_id=397769861]
+script = ExtResource("18_uwk8b")
+map = ExtResource("19_rle8l")
+player_path = NodePath("../Player")
+
+[node name="MapTracker" type="Node" parent="." unique_id=509371922]
+script = ExtResource("20_yp3mo")
+map = ExtResource("19_rle8l")
+player_path = NodePath("../Player")
+
+[node name="DialogueBox" type="CanvasLayer" parent="." unique_id=1954823741]
+script = ExtResource("21_thrq7")
+
+[node name="PauseMenu" type="CanvasLayer" parent="." unique_id=370118885]
+script = ExtResource("22_c2taf")

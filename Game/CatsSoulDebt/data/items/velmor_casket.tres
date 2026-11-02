@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_velmor_casket.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"velmor_casket"
+name = "Шкатулка графа"
+category = 3
+icon = ExtResource("1_icon")
+description = "Чёрное дерево, серебряные уголки. Запечатана — не открывается. На крышке тот же знак, что на перчатках графа."

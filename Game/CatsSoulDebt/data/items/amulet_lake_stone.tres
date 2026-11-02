@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_amulet.png" id="1_3tjwu"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_55hru"]
+
+[resource]
+script = ExtResource("2_55hru")
+id = &"amulet_lake_stone"
+name = "Оберег из озёрного камня"
+category = 0
+slot = 4
+icon = ExtResource("1_3tjwu")
+description = "Гладкий камень со дна Тихой Воды в латунной оправе. Тёплый на ощупь."
+stats = {
+"max_energy": 15
+}

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_item_placeholder.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"klaus_flask"
+name = "Фляга Клауса"
+category = 1
+icon = ExtResource("1_icon")
+description = "Кожаная фляга с брусничным настоем на меду. Бодрит и пахнет лесом. Восстанавливает 35 HP и всю энергию души."
+heal = 35.0
+energy = 999.0
+use_time = 1.0
+max_stack = 1

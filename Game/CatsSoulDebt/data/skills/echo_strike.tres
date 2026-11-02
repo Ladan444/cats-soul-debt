@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_skill_echo_strike.png" id="1_q8fxo"]
+[ext_resource type="Script" path="res://scripts/data/skill_data.gd" id="2_4mq4l"]
+
+[resource]
+script = ExtResource("2_4mq4l")
+id = &"echo_strike"
+name = "Эхо удара"
+icon = ExtResource("1_q8fxo")
+description = "Удар повторяется призрачным эхом через мгновение."
+energy_cost = 40.0
+cooldown = 6.0

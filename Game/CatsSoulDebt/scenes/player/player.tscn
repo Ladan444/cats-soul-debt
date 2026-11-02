@@ -1,0 +1,29 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ray/ray_combat.png" id="2_sprite"]
+[ext_resource type="Script" path="res://scripts/animation/directional_sprite.gd" id="3_dirsprite"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.35
+height = 1.1
+
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="Sprite3D" type="Sprite3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+pixel_size = 0.025
+hframes = 4
+vframes = 21
+billboard = 2
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("2_sprite")
+script = ExtResource("3_dirsprite")
+animations = Array[Dictionary]([{"name": "idle", "frames": 4, "fps": 4.0, "loop": true}, {"name": "walk", "frames": 4, "fps": 8.0, "loop": true}, {"name": "run", "frames": 4, "fps": 12.0, "loop": true}, {"name": "dash", "frames": 1, "fps": 1.0, "loop": false}, {"name": "attack1", "frames": 4, "fps": 10.0, "loop": false}, {"name": "attack2", "frames": 4, "fps": 10.0, "loop": false}, {"name": "attack3", "frames": 4, "fps": 8.0, "loop": false}])

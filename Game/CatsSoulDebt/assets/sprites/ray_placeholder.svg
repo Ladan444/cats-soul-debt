@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40" shape-rendering="crispEdges">
+  <!-- Placeholder for Ray: white cat, amber eyes, green garrison cloak -->
+  <!-- ears -->
+  <rect x="9" y="2" width="3" height="4" fill="#f2f0ea"/>
+  <rect x="20" y="2" width="3" height="4" fill="#f2f0ea"/>
+  <rect x="10" y="3" width="1" height="2" fill="#e8a7a7"/>
+  <rect x="21" y="3" width="1" height="2" fill="#e8a7a7"/>
+  <!-- head -->
+  <rect x="8" y="5" width="16" height="11" fill="#f2f0ea"/>
+  <rect x="8" y="15" width="16" height="1" fill="#d9d5cc"/>
+  <!-- eyes -->
+  <rect x="11" y="9" width="3" height="3" fill="#e0a030"/>
+  <rect x="18" y="9" width="3" height="3" fill="#e0a030"/>
+  <rect x="12" y="9" width="1" height="3" fill="#2a2018"/>
+  <rect x="19" y="9" width="1" height="3" fill="#2a2018"/>
+  <rect x="15" y="12" width="2" height="1" fill="#e8a7a7"/>
+  <!-- cloak -->
+  <rect x="6" y="16" width="20" height="17" fill="#3f7a3a"/>
+  <rect x="6" y="16" width="20" height="2" fill="#2f5e2c"/>
+  <rect x="15" y="18" width="2" height="15" fill="#2f5e2c"/>
+  <rect x="15" y="17" width="2" height="2" fill="#c9a24a"/>
+  <!-- legs -->
+  <rect x="10" y="33" width="4" height="5" fill="#f2f0ea"/>
+  <rect x="18" y="33" width="4" height="5" fill="#f2f0ea"/>
+  <!-- tail -->
+  <rect x="26" y="26" width="3" height="3" fill="#f2f0ea"/>
+  <rect x="28" y="22" width="2" height="5" fill="#f2f0ea"/>
+</svg>

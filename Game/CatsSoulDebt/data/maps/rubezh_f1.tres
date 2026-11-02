@@ -1,0 +1,542 @@
+[gd_resource type="Resource" script_class="JournalMap" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/journal_map.gd" id="1_map"]
+
+[resource]
+script = ExtResource("1_map")
+id = &"rubezh_f1"
+title = "Каменный Рубеж — Верхние залы (Глава 1)"
+rooms = Array[Dictionary]([{
+"id": "gate",
+"name": "Ворота Рубежа",
+"world": Rect2(-8, 57, 16, 10),
+"note": "Ворота открыты настежь. Раньше здесь спрашивали пароль — теперь только ветер.",
+"hinted": true,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [{
+"type": "lantern",
+"pos": Vector2(5, 62)
+}, {
+"type": "door",
+"pos": Vector2(8, 62)
+}],
+"passage": false
+}, {
+"id": "guard",
+"name": "Караульня",
+"world": Rect2(-31, 58, 10, 8),
+"note": "Журнал караула раскрыт, последняя строка пустая.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "yard",
+"name": "Двор стражи",
+"world": Rect2(-16, 30, 32, 16),
+"note": "Здесь нас гоняли строем. Фонарь у стены ещё держит тепло.",
+"hinted": true,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [{
+"type": "lantern",
+"pos": Vector2(0, 34)
+}],
+"passage": false
+}, {
+"id": "stairs_up",
+"name": "Лестница на стены",
+"world": Rect2(17, 21, 6, 6),
+"note": "Наверх — потом.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "barracks",
+"name": "Казарма",
+"world": Rect2(-48, 31, 20, 14),
+"note": "Наша рота. Койки ровными рядами, будто все вот-вот вернутся.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "armory",
+"name": "Оружейная",
+"world": Rect2(-44, 13, 12, 10),
+"note": "Половина мечей сломана о что-то, чего здесь уже нет.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [{
+"type": "door",
+"pos": Vector2(-38, 23)
+}],
+"passage": false
+}, {
+"id": "mess",
+"name": "Трапезная",
+"world": Rect2(-73, 32, 14, 12),
+"note": "Столы опрокинуты к двери — её держали до последнего.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "cellar",
+"name": "Погреб",
+"world": Rect2(-71, 54, 10, 8),
+"note": "Бочки целы, а свод того и гляди рухнет.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "treasury",
+"name": "Сокровищница",
+"world": Rect2(-73, 6, 14, 12),
+"note": "Шкатулку графа не открыть. И медальон — её медальон.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [{
+"type": "door",
+"pos": Vector2(-66, 18)
+}, {
+"type": "door",
+"pos": Vector2(-59, 12)
+}],
+"passage": false
+}, {
+"id": "dr1",
+"name": "проход",
+"world": Rect2(-27.5, 66, 3, 10),
+"note": "Вода по щиколотку, и в ней кто-то ходит.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": true
+}, {
+"id": "dr2",
+"name": "Водостоки",
+"world": Rect2(-57.5, 76, 33, 3),
+"note": "Вода по щиколотку, и в ней кто-то ходит.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "dr3",
+"name": "проход",
+"world": Rect2(-37.5, 79, 3, 12),
+"note": "Вода по щиколотку, и в ней кто-то ходит.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": true
+}, {
+"id": "dr4",
+"name": "проход",
+"world": Rect2(-47.5, 62, 3, 14),
+"note": "Вода по щиколотку, и в ней кто-то ходит.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": true
+}, {
+"id": "dr5",
+"name": "проход",
+"world": Rect2(-57.5, 57, 3, 22),
+"note": "Вода по щиколотку, и в ней кто-то ходит.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": true
+}, {
+"id": "dr6",
+"name": "проход",
+"world": Rect2(-73.5, 86.5, 19, 3),
+"note": "Вода по щиколотку, и в ней кто-то ходит.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": true
+}, {
+"id": "nw1",
+"name": "Узкие ходы",
+"world": Rect2(-56, 14.5, 12, 3),
+"note": "Узкие ходы — тесно даже для кота.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "nw2",
+"name": "проход",
+"world": Rect2(-56, -5.5, 3, 23),
+"note": "Узкие ходы — тесно даже для кота.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": true
+}, {
+"id": "nw3",
+"name": "проход",
+"world": Rect2(-53, -5.5, 16, 3),
+"note": "Узкие ходы — тесно даже для кота.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": true
+}, {
+"id": "crypt",
+"name": "Склеп гарнизона",
+"world": Rect2(28, 30, 20, 16),
+"note": "Свечи здесь кто-то зажигал — недавно.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [{
+"type": "lantern",
+"pos": Vector2(44, 34)
+}, {
+"type": "door",
+"pos": Vector2(38, 30)
+}],
+"passage": false
+}, {
+"id": "e1",
+"name": "Галерея урн",
+"world": Rect2(48, 36.5, 13, 3),
+"note": "Имена на урнах стёрты.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "e2",
+"name": "проход",
+"world": Rect2(51.5, 39.5, 3, 21),
+"note": "Имена на урнах стёрты.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": true
+}, {
+"id": "e3",
+"name": "проход",
+"world": Rect2(55.5, 21.5, 3, 15),
+"note": "Имена на урнах стёрты.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": true
+}, {
+"id": "ossuary",
+"name": "Костница",
+"world": Rect2(61, 33, 10, 10),
+"note": "Кости уложены аккуратно, как на смотре.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "niche",
+"name": "Ниша",
+"world": Rect2(63, 19, 6, 6),
+"note": "Чей-то последний пост.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [{
+"type": "door",
+"pos": Vector2(66, 25)
+}],
+"passage": false
+}, {
+"id": "chapel",
+"name": "Часовня",
+"world": Rect2(31, 7, 14, 10),
+"note": "Засов изнутри — кто-то запирался от своих?",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "flooded",
+"name": "Затопленный зал с лодками",
+"world": Rect2(25, 59, 26, 14),
+"note": "Лодки на привязи, а вода стоит выше, чем должна.",
+"hinted": false,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "bridge",
+"name": "Мост над пропастью",
+"world": Rect2(-3, 4, 6, 20),
+"note": "Снизу тянет холодом и фиолетовым светом.",
+"hinted": true,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [],
+"passage": false
+}, {
+"id": "great",
+"name": "Большой зал (круг печати)",
+"world": Rect2(-14, -23, 28, 22),
+"note": "Круг из чёрного камня. Граф сказал ждать здесь.",
+"hinted": true,
+"hint_note": "граф объяснил дорогу, сам ещё не был.",
+"features": [{
+"type": "door",
+"pos": Vector2(0, -1)
+}, {
+"type": "seal",
+"pos": Vector2(0, -12)
+}],
+"passage": false
+}, {
+"id": "link:gate-yard:0",
+"name": "",
+"passage": true,
+"world": Rect2(-1.5, 44.5, 3, 14),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:gate-guard:0",
+"name": "",
+"passage": true,
+"world": Rect2(-22.5, 60.5, 16, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:yard-barracks:0",
+"name": "",
+"passage": true,
+"world": Rect2(-29.5, 36.5, 15, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:yard-stairs_up:0",
+"name": "",
+"passage": true,
+"world": Rect2(-1.5, 36.5, 23, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:yard-stairs_up:1",
+"name": "",
+"passage": true,
+"world": Rect2(18.5, 22.5, 3, 17),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:barracks-armory:0",
+"name": "",
+"passage": true,
+"world": Rect2(-39.5, 21.5, 3, 11),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:barracks-mess:0",
+"name": "",
+"passage": true,
+"world": Rect2(-60.5, 36.5, 14, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:mess-cellar:0",
+"name": "",
+"passage": true,
+"world": Rect2(-67.5, 42.5, 3, 13),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:mess-treasury:0",
+"name": "",
+"passage": true,
+"world": Rect2(-67.5, 16.5, 3, 17),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:guard-dr1:0",
+"name": "",
+"passage": true,
+"world": Rect2(-27.5, 64.5, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:dr1-dr2:0",
+"name": "",
+"passage": true,
+"world": Rect2(-29, 74.5, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:dr2-dr3:0",
+"name": "",
+"passage": true,
+"world": Rect2(-37.5, 77.5, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:dr2-dr4:0",
+"name": "",
+"passage": true,
+"world": Rect2(-47.5, 74.5, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:dr2-dr5:0",
+"name": "",
+"passage": true,
+"world": Rect2(-57.5, 74.5, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:dr5-cellar:0",
+"name": "",
+"passage": true,
+"world": Rect2(-62.5, 56.5, 6.5, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:dr5-dr6:0",
+"name": "",
+"passage": true,
+"world": Rect2(-59, 77.5, 3, 10.5),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:armory-nw1:0",
+"name": "",
+"passage": true,
+"world": Rect2(-45.5, 14.5, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:nw1-nw2:0",
+"name": "",
+"passage": true,
+"world": Rect2(-56, 13, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:nw2-nw3:0",
+"name": "",
+"passage": true,
+"world": Rect2(-54.5, -5.5, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:nw2-treasury:0",
+"name": "",
+"passage": true,
+"world": Rect2(-60.5, 10.5, 6, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:yard-crypt:0",
+"name": "",
+"passage": true,
+"world": Rect2(14.5, 36.5, 15, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:crypt-e1:0",
+"name": "",
+"passage": true,
+"world": Rect2(46.5, 36.5, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:e1-e2:0",
+"name": "",
+"passage": true,
+"world": Rect2(51.5, 38, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:e1-e3:0",
+"name": "",
+"passage": true,
+"world": Rect2(55.5, 35, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:e1-ossuary:0",
+"name": "",
+"passage": true,
+"world": Rect2(59.5, 36.5, 3, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:ossuary-niche:0",
+"name": "",
+"passage": true,
+"world": Rect2(64.5, 23.5, 3, 11),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:chapel-crypt:0",
+"name": "",
+"passage": true,
+"world": Rect2(36.5, 15.5, 3, 16),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:crypt-flooded:0",
+"name": "",
+"passage": true,
+"world": Rect2(36.5, 44.5, 3, 16),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:flooded-gate:0",
+"name": "",
+"passage": true,
+"world": Rect2(6.5, 60.5, 20, 3),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:yard-bridge:0",
+"name": "",
+"passage": true,
+"world": Rect2(-1.5, 22.5, 3, 9),
+"note": "",
+"hinted": false,
+"features": []
+}, {
+"id": "link:bridge-great:0",
+"name": "",
+"passage": true,
+"world": Rect2(-1.5, -2.5, 3, 8),
+"note": "",
+"hinted": false,
+"features": []
+}])

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_skill_ghost_step.png" id="1_7vgk1"]
+[ext_resource type="Script" path="res://scripts/data/skill_data.gd" id="2_4xp3f"]
+
+[resource]
+script = ExtResource("2_4xp3f")
+id = &"ghost_step"
+name = "Призрачный шаг"
+icon = ExtResource("1_7vgk1")
+description = "Рывок сквозь врагов, не получая урона."

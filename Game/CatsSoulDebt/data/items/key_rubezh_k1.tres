@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_key_rubezh_k1.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"key_rubezh_k1"
+name = "Ключ от оружейной"
+category = 3
+icon = ExtResource("1_icon")
+description = "Ржавый ключ на бирке: «Оружейная, I рота». Утонул вместе с кем-то из своих."
+max_stack = 1

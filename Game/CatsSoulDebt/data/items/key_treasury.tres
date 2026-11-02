@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_key_treasury.png" id="1_wwskl"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_hhqdp"]
+
+[resource]
+script = ExtResource("2_hhqdp")
+id = &"key_treasury"
+name = "Ключ от сокровищницы"
+category = 3
+icon = ExtResource("1_wwskl")
+description = "Тяжёлый латунный ключ. Рэй уже открывал им дверь — ради Лиары."

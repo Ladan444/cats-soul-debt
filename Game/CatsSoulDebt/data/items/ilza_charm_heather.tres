@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_ilza_charm_heather.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"ilza_charm_heather"
+name = "Вересковый узелок"
+category = 0
+slot = 4
+icon = ExtResource("1_icon")
+description = "Сухой вереск в льняном узелке, перевязан синей ниткой. Ильза говорит — от усталости."
+stats = {
+"max_energy": 12
+}

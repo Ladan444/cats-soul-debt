@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="JournalEntry" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/velmor/velmor_anim.png" id="1_caumk"]
+[ext_resource type="Script" path="res://scripts/data/journal_entry.gd" id="2_arear"]
+
+[resource]
+script = ExtResource("2_arear")
+id = &"person_velmor"
+title = "Граф Вельмор"
+section = 1
+order = 7
+text = "Трактирщик Ивового Брода. Печёт пироги, лечит скот, ни разу не взял плату вперёд.
+
+Никогда не снимает перчаток."
+portrait_sheet = ExtResource("1_caumk")

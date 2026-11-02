@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="JournalMap" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/journal_map.gd" id="1_map"]
+
+[resource]
+script = ExtResource("1_map")
+id = &"tavern"
+title = "Таверна «Красная черепица»"
+rooms = Array[Dictionary]([{
+"id": "ray_room",
+"name": "Моя комната",
+"world": Rect2(3, -5, 4, 5),
+"note": "Кровать, сундук и свеча. Граф не берёт с меня платы.",
+"hinted": true,
+"features": []
+}, {
+"id": "hall",
+"name": "Общий зал",
+"world": Rect2(-7, -5, 14, 10),
+"note": "Стойка графа у северной стены, камин у западной.",
+"hinted": true,
+"features": [{
+"type": "fire",
+"pos": Vector2(-6.1, 0)
+}, {
+"type": "door",
+"pos": Vector2(-1, 5)
+}]
+}])

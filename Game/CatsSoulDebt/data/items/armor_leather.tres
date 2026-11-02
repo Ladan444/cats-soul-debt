@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_armor.png" id="1_xv83k"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_i4eso"]
+
+[resource]
+script = ExtResource("2_i4eso")
+id = &"armor_leather"
+name = "Кожаный нагрудник"
+category = 0
+slot = 3
+icon = ExtResource("1_xv83k")
+description = "Нагрудник из толстой кожи с железными пластинами."
+stats = {
+"defense": 5,
+"max_hp": 10
+}

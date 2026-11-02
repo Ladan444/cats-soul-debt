@@ -1,0 +1,614 @@
+{
+ "models": {
+  "BirchTree_1": {
+   "materials": [
+    "BirchTree_Bark",
+    "BirchTree_Leaves"
+   ],
+   "height": 5.45,
+   "trunk": 0.17,
+   "crown": 1.38,
+   "tris": 4598
+  },
+  "BirchTree_2": {
+   "materials": [
+    "BirchTree_Bark",
+    "BirchTree_Leaves"
+   ],
+   "height": 7.57,
+   "trunk": 0.15,
+   "crown": 1.79,
+   "tris": 7660
+  },
+  "BirchTree_3": {
+   "materials": [
+    "BirchTree_Bark",
+    "BirchTree_Leaves"
+   ],
+   "height": 5.75,
+   "trunk": 0.17,
+   "crown": 1.8,
+   "tris": 6818
+  },
+  "BirchTree_4": {
+   "materials": [
+    "BirchTree_Bark",
+    "BirchTree_Leaves"
+   ],
+   "height": 4.21,
+   "trunk": 0.13,
+   "crown": 1.43,
+   "tris": 3562
+  },
+  "BirchTree_5": {
+   "materials": [
+    "BirchTree_Bark",
+    "BirchTree_Leaves"
+   ],
+   "height": 5.52,
+   "trunk": 0.17,
+   "crown": 2.14,
+   "tris": 4520
+  },
+  "Bush": {
+   "materials": [
+    "Bush_Leaves"
+   ],
+   "height": 0.69,
+   "trunk": 0.57,
+   "crown": 0.6,
+   "tris": 400
+  },
+  "Bush_Flowers": {
+   "materials": [
+    "Flowers",
+    "Bush_Leaves"
+   ],
+   "height": 0.76,
+   "trunk": 0.62,
+   "crown": 0.62,
+   "tris": 478
+  },
+  "DeadTree_1": {
+   "materials": [
+    "NormalTree_Bark"
+   ],
+   "height": 6.2,
+   "trunk": 0.17,
+   "crown": 1.66,
+   "tris": 4792
+  },
+  "DeadTree_10": {
+   "materials": [
+    "MapleTree_Bark"
+   ],
+   "height": 7.13,
+   "trunk": 0.34,
+   "crown": 3.23,
+   "tris": 3208
+  },
+  "DeadTree_2": {
+   "materials": [
+    "NormalTree_Bark"
+   ],
+   "height": 6.2,
+   "trunk": 0.18,
+   "crown": 1.79,
+   "tris": 5344
+  },
+  "DeadTree_3": {
+   "materials": [
+    "NormalTree_Bark"
+   ],
+   "height": 4.96,
+   "trunk": 0.18,
+   "crown": 2.87,
+   "tris": 4928
+  },
+  "DeadTree_4": {
+   "materials": [
+    "NormalTree_Bark"
+   ],
+   "height": 4.61,
+   "trunk": 0.18,
+   "crown": 2.97,
+   "tris": 3528
+  },
+  "DeadTree_5": {
+   "materials": [
+    "NormalTree_Bark"
+   ],
+   "height": 2.6,
+   "trunk": 0.25,
+   "crown": 0.89,
+   "tris": 1360
+  },
+  "DeadTree_6": {
+   "materials": [
+    "MapleTree_Bark"
+   ],
+   "height": 6.41,
+   "trunk": 0.34,
+   "crown": 4.05,
+   "tris": 2984
+  },
+  "DeadTree_7": {
+   "materials": [
+    "MapleTree_Bark"
+   ],
+   "height": 6.31,
+   "trunk": 0.35,
+   "crown": 4.71,
+   "tris": 3504
+  },
+  "DeadTree_8": {
+   "materials": [
+    "MapleTree_Bark"
+   ],
+   "height": 6.28,
+   "trunk": 0.34,
+   "crown": 4.36,
+   "tris": 4944
+  },
+  "DeadTree_9": {
+   "materials": [
+    "MapleTree_Bark",
+    "MapleTree_Leaves"
+   ],
+   "height": 3.3,
+   "trunk": 0.15,
+   "crown": 1.31,
+   "tris": 824
+  },
+  "Flower_1": {
+   "materials": [
+    "Flowers",
+    "Bush_Leaves"
+   ],
+   "height": 0.49,
+   "trunk": 0.01,
+   "crown": 0.15,
+   "tris": 162
+  },
+  "Flower_1_Clump": {
+   "materials": [
+    "Flowers",
+    "Bush_Leaves"
+   ],
+   "height": 0.67,
+   "trunk": 0.04,
+   "crown": 0.3,
+   "tris": 620
+  },
+  "Flower_2": {
+   "materials": [
+    "Flowers",
+    "Bush_Leaves"
+   ],
+   "height": 0.36,
+   "trunk": 0.01,
+   "crown": 0.2,
+   "tris": 34
+  },
+  "Flower_2_Clump": {
+   "materials": [
+    "Flowers",
+    "Bush_Leaves"
+   ],
+   "height": 0.45,
+   "trunk": 0.04,
+   "crown": 0.25,
+   "tris": 136
+  },
+  "Flower_3_Clump": {
+   "materials": [
+    "Flowers",
+    "Bush_Leaves"
+   ],
+   "height": 0.45,
+   "trunk": 0.04,
+   "crown": 0.25,
+   "tris": 136
+  },
+  "Flower_4_Clump": {
+   "materials": [
+    "Flowers",
+    "Bush_Leaves"
+   ],
+   "height": 0.45,
+   "trunk": 0.04,
+   "crown": 0.25,
+   "tris": 136
+  },
+  "Flower_5_Clump": {
+   "materials": [
+    "Flowers",
+    "Bush_Leaves"
+   ],
+   "height": 0.45,
+   "trunk": 0.04,
+   "crown": 0.25,
+   "tris": 136
+  },
+  "Grass_Large_Extruded": {
+   "materials": [
+    "Grass"
+   ],
+   "height": 0.51,
+   "trunk": 0.33,
+   "crown": 0.46,
+   "tris": 516
+  },
+  "Grass_Small": {
+   "materials": [
+    "Grass"
+   ],
+   "height": 0.39,
+   "trunk": 0.21,
+   "crown": 0.27,
+   "tris": 58
+  },
+  "MapleTree_1": {
+   "materials": [
+    "MapleTree_Bark",
+    "MapleTree_Leaves"
+   ],
+   "height": 6.64,
+   "trunk": 0.34,
+   "crown": 4.22,
+   "tris": 3848
+  },
+  "MapleTree_2": {
+   "materials": [
+    "MapleTree_Bark",
+    "MapleTree_Leaves"
+   ],
+   "height": 6.71,
+   "trunk": 0.35,
+   "crown": 5.06,
+   "tris": 4800
+  },
+  "MapleTree_3": {
+   "materials": [
+    "MapleTree_Bark",
+    "MapleTree_Leaves"
+   ],
+   "height": 6.99,
+   "trunk": 0.34,
+   "crown": 4.71,
+   "tris": 6678
+  },
+  "MapleTree_4": {
+   "materials": [
+    "MapleTree_Bark",
+    "MapleTree_Leaves"
+   ],
+   "height": 3.59,
+   "trunk": 0.15,
+   "crown": 1.67,
+   "tris": 1256
+  },
+  "MapleTree_5": {
+   "materials": [
+    "MapleTree_Bark",
+    "MapleTree_Leaves"
+   ],
+   "height": 7.28,
+   "trunk": 0.34,
+   "crown": 3.79,
+   "tris": 4504
+  },
+  "NormalTree_1": {
+   "materials": [
+    "NormalTree_Bark",
+    "NormalTree_Leaves"
+   ],
+   "height": 6.87,
+   "trunk": 0.17,
+   "crown": 2.26,
+   "tris": 8520
+  },
+  "NormalTree_2": {
+   "materials": [
+    "NormalTree_Bark",
+    "NormalTree_Leaves"
+   ],
+   "height": 6.56,
+   "trunk": 0.18,
+   "crown": 2.37,
+   "tris": 8084
+  },
+  "NormalTree_3": {
+   "materials": [
+    "NormalTree_Bark",
+    "NormalTree_Leaves"
+   ],
+   "height": 5.28,
+   "trunk": 0.18,
+   "crown": 3.15,
+   "tris": 7096
+  },
+  "NormalTree_4": {
+   "materials": [
+    "NormalTree_Bark",
+    "NormalTree_Leaves"
+   ],
+   "height": 5.1,
+   "trunk": 0.18,
+   "crown": 3.11,
+   "tris": 6338
+  },
+  "NormalTree_5": {
+   "materials": [
+    "NormalTree_Bark",
+    "NormalTree_Leaves"
+   ],
+   "height": 2.98,
+   "trunk": 0.25,
+   "crown": 1.63,
+   "tris": 2182
+  },
+  "Petals_1": {
+   "materials": [
+    "Bush_Leaves",
+    "Flowers"
+   ],
+   "height": 0.63,
+   "trunk": 0.31,
+   "crown": 0.36,
+   "tris": 90
+  },
+  "PineTree_1": {
+   "materials": [
+    "PineTree_Bark",
+    "PineTree_Leaves"
+   ],
+   "height": 4.5,
+   "trunk": 0.13,
+   "crown": 1.8,
+   "tris": 2128
+  },
+  "PineTree_2": {
+   "materials": [
+    "PineTree_Bark",
+    "PineTree_Leaves"
+   ],
+   "height": 6.91,
+   "trunk": 0.13,
+   "crown": 1.98,
+   "tris": 2716
+  },
+  "PineTree_3": {
+   "materials": [
+    "PineTree_Bark",
+    "PineTree_Leaves"
+   ],
+   "height": 2.35,
+   "trunk": 0.67,
+   "crown": 0.93,
+   "tris": 1998
+  },
+  "PineTree_4": {
+   "materials": [
+    "PineTree_Bark",
+    "PineTree_Leaves"
+   ],
+   "height": 4.48,
+   "trunk": 0.13,
+   "crown": 3.67,
+   "tris": 2686
+  },
+  "PineTree_5": {
+   "materials": [
+    "PineTree_Bark",
+    "PineTree_Leaves"
+   ],
+   "height": 4.3,
+   "trunk": 0.11,
+   "crown": 1.73,
+   "tris": 838
+  },
+  "Plant_1": {
+   "materials": [
+    "Flowers"
+   ],
+   "height": 0.69,
+   "trunk": 0.67,
+   "crown": 0.94,
+   "tris": 420
+  },
+  "Plant_2": {
+   "materials": [
+    "Flowers"
+   ],
+   "height": 0.55,
+   "trunk": 0.64,
+   "crown": 0.78,
+   "tris": 160
+  },
+  "Plant_Flowers": {
+   "materials": [
+    "Bush_Leaves",
+    "Flowers"
+   ],
+   "height": 1.18,
+   "trunk": 0.83,
+   "crown": 0.83,
+   "tris": 330
+  },
+  "Rock_1": {
+   "materials": [
+    "Rocks"
+   ],
+   "height": 1.08,
+   "trunk": 0.59,
+   "crown": 0.59,
+   "tris": 228
+  },
+  "Rock_2": {
+   "materials": [
+    "Rocks"
+   ],
+   "height": 1.12,
+   "trunk": 0.7,
+   "crown": 0.7,
+   "tris": 202
+  },
+  "Rock_3": {
+   "materials": [
+    "Rocks"
+   ],
+   "height": 1.31,
+   "trunk": 0.6,
+   "crown": 0.6,
+   "tris": 712
+  },
+  "Rock_4": {
+   "materials": [
+    "Rocks"
+   ],
+   "height": 2.15,
+   "trunk": 0.59,
+   "crown": 0.59,
+   "tris": 456
+  },
+  "Rock_5": {
+   "materials": [
+    "Rocks"
+   ],
+   "height": 1.69,
+   "trunk": 0.82,
+   "crown": 0.82,
+   "tris": 632
+  },
+  "WillowTree_1": {
+   "materials": [
+    "NormalTree_Bark",
+    "WillowTree_Leaves"
+   ],
+   "height": 6.85,
+   "trunk": 0.17,
+   "crown": 2.72,
+   "tris": 8520
+  },
+  "WillowTree_2": {
+   "materials": [
+    "NormalTree_Bark",
+    "WillowTree_Leaves"
+   ],
+   "height": 6.52,
+   "trunk": 2.6,
+   "crown": 2.85,
+   "tris": 8084
+  },
+  "WillowTree_3": {
+   "materials": [
+    "NormalTree_Bark",
+    "WillowTree_Leaves"
+   ],
+   "height": 5.15,
+   "trunk": 0.18,
+   "crown": 3.79,
+   "tris": 7096
+  },
+  "Reed_1": {
+   "materials": [
+    "Reed"
+   ],
+   "height": 1.63,
+   "trunk": 0.23,
+   "crown": 0.31,
+   "tris": 516
+  },
+  "Reed_2": {
+   "materials": [
+    "Reed"
+   ],
+   "height": 2.04,
+   "trunk": 0.18,
+   "crown": 0.25,
+   "tris": 516
+  },
+  "LilyPad_1": {
+   "materials": [
+    "LilyPad"
+   ],
+   "height": 0.02,
+   "trunk": 0.0,
+   "crown": 0.45,
+   "tris": 11
+  },
+  "LilyPad_2": {
+   "materials": [
+    "LilyPad"
+   ],
+   "height": 0.02,
+   "trunk": 0.0,
+   "crown": 0.45,
+   "tris": 11
+  }
+ },
+ "images": {
+  "BirchTree_Bark": {
+   "meters_per_uv": 0.607,
+   "px": 24
+  },
+  "BirchTree_Leaves": {
+   "meters_per_uv": 0.468,
+   "px": 19
+  },
+  "Bush_Leaves": {
+   "meters_per_uv": 0.344,
+   "px": 14
+  },
+  "Flowers": {
+   "meters_per_uv": 0.917,
+   "px": 37
+  },
+  "NormalTree_Bark": {
+   "meters_per_uv": 0.741,
+   "px": 30
+  },
+  "MapleTree_Bark": {
+   "meters_per_uv": 0.909,
+   "px": 36
+  },
+  "Grass": {
+   "meters_per_uv": 0.708,
+   "px": 28
+  },
+  "MapleTree_Leaves": {
+   "meters_per_uv": 0.91,
+   "px": 36
+  },
+  "NormalTree_Leaves": {
+   "meters_per_uv": 0.562,
+   "px": 22
+  },
+  "PineTree_Bark": {
+   "meters_per_uv": 0.474,
+   "px": 19
+  },
+  "PineTree_Leaves": {
+   "meters_per_uv": 1.595,
+   "px": 64
+  },
+  "Rocks": {
+   "meters_per_uv": 6.718,
+   "px": 269
+  },
+  "WillowTree_Leaves": {
+   "meters_per_uv": 0.562,
+   "px": 22,
+   "source": "NormalTree_Leaves"
+  },
+  "Reed": {
+   "meters_per_uv": 0.708,
+   "px": 28,
+   "source": "Grass"
+  },
+  "LilyPad": {
+   "generated": true
+  }
+ }
+}

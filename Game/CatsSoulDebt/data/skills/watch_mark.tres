@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkillData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_skill_watch_mark.png" id="1_jodvy"]
+[ext_resource type="Script" path="res://scripts/data/skill_data.gd" id="2_c0r2p"]
+
+[resource]
+script = ExtResource("2_c0r2p")
+id = &"watch_mark"
+name = "Метка часового"
+icon = ExtResource("1_jodvy")
+description = "Отмечает врага: следующий удар по нему сильнее."
+energy_cost = 30.0
+cooldown = 4.0

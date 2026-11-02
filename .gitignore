@@ -1,0 +1,20 @@
+# Репозиторий для совместной работы: только игра (Godot), инструменты и документы.
+# Арт-исходники, Blender, генерации, сборки и сам Godot остаются локально у автора (бэкап — Tools/backup.ps1).
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/CLAUDE.md
+!/PROGRESS.md
+!/Game/
+!/Tools/
+!/Литература/
+!/Проект/
+
+/Game/*
+!/Game/CatsSoulDebt/
+/Game/CatsSoulDebt/.godot/
+/Game/CatsSoulDebt/*.translation
+
+*.tmp
+__pycache__/

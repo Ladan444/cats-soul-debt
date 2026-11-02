@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="JournalEntry" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/journal_entry.gd" id="1_7x0y7"]
+
+[resource]
+script = ExtResource("1_7x0y7")
+id = &"ray_nine_marks"
+title = "Девять отметок"
+order = 1
+text = "В ту ночь я умер девять раз. Теперь каждая смерть внизу — отметка на счёте. Просыпаюсь у фонаря душ, если успел его зажечь. После девятой меня выбрасывает на Перепутье.
+
+Каждый раз что-то остаётся в воде."

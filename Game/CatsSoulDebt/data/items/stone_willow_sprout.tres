@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_stone_willow_sprout.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"stone_willow_sprout"
+name = "Росток каменной ивы"
+category = 2
+slot = 0
+icon = ExtResource("1_icon")
+description = "Серый росток с листьями, твёрдыми, как сланец. Растёт только в Лесном святилище. Хорст закаляет с ним сталь меча."
+stats = {}
+heal = 0.0
+max_stack = 9

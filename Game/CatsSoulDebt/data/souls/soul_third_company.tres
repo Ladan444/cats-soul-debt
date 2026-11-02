@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="SoulData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/soul_data.gd" id="1_abcyx"]
+[ext_resource type="Resource" path="res://data/skills/ghost_step.tres" id="2_xsvpn"]
+
+[resource]
+script = ExtResource("1_abcyx")
+id = &"soul_third_company"
+name = "Солдат третьей роты"
+company = "Третья рота"
+memory = "Он всегда первым бросался в пролом и последним уходил с поста."
+skill = ExtResource("2_xsvpn")

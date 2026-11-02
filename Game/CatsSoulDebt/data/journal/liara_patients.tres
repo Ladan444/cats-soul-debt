@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="JournalEntry" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/journal_entry.gd" id="1_tjen7"]
+
+[resource]
+script = ExtResource("1_tjen7")
+id = &"liara_patients"
+title = "Страница из книги писаря"
+author = 1
+order = 2
+text = "Р. опять принёс травы из сокровищницы. Сказала ему, что это не лечится. Он не слушает.
+
+Записать в журнал гарнизона: недостача — две склянки, сушёный корень. Виновного не нашли."

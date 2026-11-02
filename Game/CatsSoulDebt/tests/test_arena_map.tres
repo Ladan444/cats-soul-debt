@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="JournalMap" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/journal_map.gd" id="1_7mw52"]
+
+[resource]
+script = ExtResource("1_7mw52")
+id = &"test_map"
+title = "Брод — Рубеж — Тихая Вода"
+rooms = Array[Dictionary]([{
+"features": [{
+"pos": Vector2(-20, -6),
+"type": "fire"
+}, {
+"pos": Vector2(-8, 4.5),
+"type": "door"
+}],
+"id": "tavern",
+"name": "Таверна графа",
+"note": "Тепло, свечи на каждом столе. Граф говорит, что мне здесь всегда рады.",
+"world": Rect2(-24, -7, 16, 14)
+}, {
+"features": [{
+"pos": Vector2(8, 4.5),
+"type": "door"
+}],
+"id": "rubezh",
+"name": "Верхние залы Рубежа",
+"note": "Факелы горят холодным светом. С потолка капает, на колоннах мох.",
+"world": Rect2(-8, -7, 16, 14)
+}, {
+"id": "shore",
+"name": "Берег Тихой Воды",
+"note": "Кристаллы светятся фиолетовым. Вода не шевелится, даже если бросить камень.",
+"world": Rect2(8, -7, 8, 14)
+}, {
+"features": [{
+"pos": Vector2(18, 1.15),
+"type": "lantern"
+}, {
+"pos": Vector2(21.5, -1.15),
+"type": "lantern"
+}, {
+"pos": Vector2(25, 1.15),
+"type": "lantern"
+}, {
+"pos": Vector2(27, 0),
+"type": "seal"
+}],
+"hinted": true,
+"id": "pier",
+"name": "Причал",
+"note": "Три фонаря душ. В конце — круг из чёрного камня.",
+"world": Rect2(16, -1.25, 12, 2.5)
+}])

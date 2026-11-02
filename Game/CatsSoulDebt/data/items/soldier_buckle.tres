@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_soldier_buckle.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"soldier_buckle"
+name = "Медная пряжка"
+category = 3
+slot = 0
+icon = ExtResource("1_icon")
+description = "Медная пряжка второй роты со следами зубов: её сжимали при перевязке ран."
+stats = {}

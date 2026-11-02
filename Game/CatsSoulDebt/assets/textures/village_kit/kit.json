@@ -1,0 +1,45 @@
+{
+ "images": {
+  "T_WoodTrim_BaseColor": {
+   "meters_per_uv": 1.968
+  },
+  "T_Plaster_BaseColor": {
+   "meters_per_uv": 2.248
+  },
+  "T_Brick_BaseColor": {
+   "meters_per_uv": 2.308
+  },
+  "T_RockTrim_BaseColor": {
+   "meters_per_uv": 2.464
+  },
+  "T_RoundTiles_BaseColor": {
+   "meters_per_uv": 4.142
+  },
+  "T_VineLeaf": {
+   "meters_per_uv": 0.748
+  },
+  "T_UnevenBrick_BaseColor": {
+   "meters_per_uv": 2.053
+  }
+ },
+ "materials": {
+  "MI_WoodTrim": "T_WoodTrim_BaseColor",
+  "MI_Plaster": "T_Plaster_BaseColor",
+  "MI_WoodTrim_inside": "T_WoodTrim_BaseColor",
+  "MI_Plaster_inside": "T_Plaster_BaseColor",
+  "MI_Brick": "T_Brick_BaseColor",
+  "MI_WindowGlass": "",
+  "MI_RockTrim": "T_RockTrim_BaseColor",
+  "MI_WoodTrim_Wear": "T_WoodTrim_BaseColor",
+  "MI_WoodTrim_Wear_inside": "T_WoodTrim_BaseColor",
+  "MI_RoundTiles": "T_RoundTiles_BaseColor",
+  "MI_RoundTiles_inside": "T_RoundTiles_BaseColor",
+  "MI_Vine": "T_VineLeaf",
+  "MI_UnevenBrick": "T_UnevenBrick_BaseColor",
+  "MI_RockTrim_inside": "T_RockTrim_BaseColor",
+  "MI_RoundTiles_slate": "T_RoundTiles_BaseColor",
+  "MI_RoundTiles_slate_inside": "T_RoundTiles_BaseColor",
+  "MI_RoundTiles_brown": "T_RoundTiles_BaseColor",
+  "MI_RoundTiles_brown_inside": "T_RoundTiles_BaseColor"
+ }
+}

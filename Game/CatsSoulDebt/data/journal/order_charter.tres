@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="JournalEntry" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/journal_entry.gd" id="1_i1poi"]
+
+[resource]
+script = ExtResource("1_i1poi")
+id = &"order_charter"
+title = "Приказ по гарнизону"
+author = 2
+order = 3
+text = "«Ограждение возводится для защиты, а не для славы». Устав Рубежа, первая строка.
+
+Приближаться к печати без приказа запрещено. Нарушивший будет наказан по уставу."
+sealed = true

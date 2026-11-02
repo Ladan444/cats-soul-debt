@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_key_black.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"key_rubezh_k2"
+name = "Ключ второго склепа"
+category = 3
+icon = ExtResource("1_icon")
+description = "Чёрный ключ с цифрой II. Холодный, как вода внизу."
+max_stack = 1

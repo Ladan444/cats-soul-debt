@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="JournalEntry" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/ray/ray_anim.png" id="1_na6ed"]
+[ext_resource type="Script" path="res://scripts/data/journal_entry.gd" id="2_j1a7u"]
+
+[resource]
+script = ExtResource("2_j1a7u")
+id = &"person_ray"
+title = "Рэй"
+section = 1
+order = 5
+text = "Младший из девятижизненных. Солдат гарнизона Каменного Рубежа. Шрам на щеке — с первой ночи на посту.
+
+Живу на десятой жизни."
+portrait_sheet = ExtResource("1_na6ed")

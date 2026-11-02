@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="JournalEntry" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/journal_entry.gd" id="1_p0q8n"]
+
+[resource]
+script = ExtResource("1_p0q8n")
+id = &"ray_debt"
+title = "Долг"
+text = "Граф говорит, что долг — просто слово. Но жизнь, которую я ношу, не моя. Десятая, взятая взаймы в Ночь Рубежа. Пока я её отрабатываю, ношу ему вещи из склепа.
+
+Контракт я так и не дочитал."

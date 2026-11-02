@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="JournalEntry" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/liara/liara_anim.png" id="1_tkdqm"]
+[ext_resource type="Script" path="res://scripts/data/journal_entry.gd" id="2_dgv32"]
+
+[resource]
+script = ExtResource("2_dgv32")
+id = &"person_liara"
+title = "Лиара"
+section = 1
+order = 6
+text = "Целительница и писарь гарнизона. Единственная, кто смеётся над моей выправкой.
+
+Она больна, и мы оба это знаем."
+portrait_sheet = ExtResource("1_tkdqm")

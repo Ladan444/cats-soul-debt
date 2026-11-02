@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_note_unsigned.png" id="1_ynqw1"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_jmfei"]
+
+[resource]
+script = ExtResource("2_jmfei")
+id = &"note_unsigned"
+name = "Записка без подписи"
+category = 3
+icon = ExtResource("1_ynqw1")
+description = "Найдена в казарме. Почерк незнакомый."
+journal_entry = &"note_unsigned"
