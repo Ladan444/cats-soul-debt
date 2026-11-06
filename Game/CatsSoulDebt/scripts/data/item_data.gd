@@ -25,6 +25,11 @@ const SLOT_NAMES := ["", "Оружие", "Плащ", "Доспех", "Амуле
 @export var energy: float = 0.0
 ## Еда: сколько секунд Рэй ест (удар по нему прерывает, предмет не тратится). 0 — мгновенно (настойки).
 @export var use_time: float = 0.0
+## Зелья Ларпа: бафф на время (PlayerState.add_buff). Виды: defense — к защите, speed и regen — доля прибавки
+## к скорости и восстановлению энергии, night — яркость света вокруг Рэя ночью, mist — доля снижения урона от тумана.
+@export var buff: StringName
+@export var buff_power: float = 0.0
+@export var buff_time: float = 0.0
 @export var max_stack: int = 1
 ## Ключевые предметы: id записи журнала, которую можно открыть.
 @export var journal_entry: StringName

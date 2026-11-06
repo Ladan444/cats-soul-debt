@@ -14,7 +14,7 @@ const WOOD := preload("res://assets/ui/panel_wood.png")
 const INK := Color("2a1e18")
 const PANEL := Vector2(420, 84)
 ## Нижний отступ окна реплик: поднято над хотбаром (иначе он перекрывал нижний край окна).
-const BOTTOM_GAP := 54
+const BOTTOM_GAP := 76
 const CHARS_PER_SECOND := 40.0
 
 var _panel: NinePatchRect

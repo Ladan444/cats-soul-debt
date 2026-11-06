@@ -11,6 +11,8 @@ extends Interactable
 @export var label_text: String = ""
 @export var verb: String = "взять"
 @export var lines: PackedStringArray = []
+## Окно игровых часов [от, до) — находка видна и берётся только в нём (Vector2.ZERO — всегда).
+@export var time_window: Vector2 = Vector2.ZERO
 
 var _visual: MeshInstance3D
 var _glow: OmniLight3D
@@ -49,6 +51,8 @@ func _ready() -> void:
 
 
 func _active() -> bool:
+	if time_window != Vector2.ZERO and not TimeOfDay.in_window(time_window.x, time_window.y):
+		return false
 	return QuestState.active.has(quest_id) and not QuestState.is_done(quest_id)
 
 

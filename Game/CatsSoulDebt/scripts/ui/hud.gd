@@ -3,26 +3,10 @@ extends Control
 ## 4 скилла + 4 предмета, гелиосы, миникарта, название зоны. В хабе (таверна) хотбар прячется.
 ## Размеры — в UI-пикселях; родитель — UIScaler.
 
-const PLANK := preload("res://assets/ui/plank.png")
-const ICON_HEART := preload("res://assets/ui/icon_heart.png")
-const ICON_SOUL := preload("res://assets/ui/icon_soul.png")
-const ICON_HELIOS := preload("res://assets/ui/icon_helios.png")
-const SPARK_FULL := preload("res://assets/ui/spark_full.png")
-const SPARK_SPENT := preload("res://assets/ui/spark_spent.png")
-const EMBLEM := preload("res://assets/ui/emblem.png")
-const EMBLEM_SOCKET := preload("res://assets/ui/emblem_socket.png")
-
-const SLOT := 24
-const PLANK_BORDER := 5   ## толщина рамки доски (plank.png)
-const GAP := 2
-const GROUP_W := SLOT * 4 + GAP * 3
-const CENTER_W := 32
-const BOTTOM := 5
-
-const ICON_BOOK := preload("res://assets/ui/sicon_book.png")
-const ICON_MAP := preload("res://assets/ui/sicon_map.png")
-const ICON_GEAR := preload("res://assets/ui/sicon_gear.png")
-## Закладка «Карты» в книге (Book.SECTIONS).
+## Новый HUD (макет «Красивый HUD», Арт/Генерации/UI/hud_v2): графика — лист hud_atlas.png (HudAtlas), раскладка — для
+## холста 640×360; при другом размере холста низ привязан к центру и нижнему краю, верх — к углам.
+const SPARK_FULL_NAME := "spark_full"
+const SPARK_SPENT_NAME := "spark_spent"
 
 ## Необязательно: AtmosphereBlender — для названия зоны и режима хаба.
 @export var atmosphere_path: NodePath
@@ -31,10 +15,16 @@ var _hotbar: Control
 var _hp_bar: PixelBar
 var _energy_bar: PixelBar
 var _sparks: Array[TextureRect] = []
+var _tray_l: TextureRect
+var _tray_r: TextureRect
+var _plank: TextureRect
+var _medallion: TextureRect
+var _heart: TextureRect
+var _soul: TextureRect
 var _skill_slots: Array[HotbarSlot] = []
 var _item_slots: Array[HotbarSlot] = []
 var _helios_label: Label
-var _helios_box: Control
+var _plaque: Control
 var _delta_label: Label
 var _zone_label: Label
 var _atmosphere: AtmosphereBlender
@@ -75,46 +65,49 @@ func _build() -> void:
 	_hotbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_hotbar)
 
-	var plank := NinePatchRect.new()
-	plank.name = "Plank"
-	plank.texture = PLANK
-	plank.patch_margin_left = PLANK_BORDER
-	plank.patch_margin_right = PLANK_BORDER
-	plank.patch_margin_top = PLANK_BORDER
-	plank.patch_margin_bottom = PLANK_BORDER
-	plank.axis_stretch_horizontal = NinePatchRect.AXIS_STRETCH_MODE_TILE
-	_hotbar.add_child(plank)
+	_plank = _atlas_rect("Plank", "plank")
+	_hotbar.add_child(_plank)
+	_tray_l = _atlas_rect("TrayL", "tray")
+	_tray_r = _atlas_rect("TrayR", "tray")
+	_hotbar.add_child(_tray_l)
+	_hotbar.add_child(_tray_r)
 
 	_hp_bar = PixelBar.new()
 	_hp_bar.name = "HPBar"
+	_hp_bar.kind = "hp"
 	_hotbar.add_child(_hp_bar)
 	_energy_bar = PixelBar.new()
 	_energy_bar.name = "EnergyBar"
-	_energy_bar.fill_color = Color("8fd8d0")
-	_energy_bar.shade_color = Color("3e7e86")
-	_energy_bar.trail_color = Color("e8fffb")
+	_energy_bar.kind = "en"
+	_energy_bar.tip_left = true
 	_hotbar.add_child(_energy_bar)
-	_hotbar.add_child(_icon("HeartIcon", ICON_HEART))
-	_hotbar.add_child(_icon("SoulIcon", ICON_SOUL))
+	_heart = _atlas_rect("HeartIcon", "heart")
+	_soul = _atlas_rect("SoulIcon", "soul")
+	_hotbar.add_child(_heart)
+	_hotbar.add_child(_soul)
 
 	for i in PlayerState.MAX_DEATHS:
-		var spark := _icon("Spark%d" % i, SPARK_FULL)
-		spark.pivot_offset = Vector2(3.5, 3.5)
+		var spark := _atlas_rect("Spark%d" % i, SPARK_FULL_NAME)
+		spark.pivot_offset = Vector2(3.5, 4.5)
 		_sparks.append(spark)
 		_hotbar.add_child(spark)
 
-	_hotbar.add_child(_icon("EmblemSocket", EMBLEM_SOCKET))
-	_hotbar.add_child(_icon("Emblem", EMBLEM))
+	_medallion = _atlas_rect("Emblem", "medallion")
+	_hotbar.add_child(_medallion)
 
 	for i in 4:
 		var s := HotbarSlot.new()
 		s.name = "Skill%d" % i
+		s.index = i
+		s.is_skill = true
 		s.pressed.connect(func(): if _can_act(): PlayerState.use_skill(i))
 		_skill_slots.append(s)
 		_hotbar.add_child(s)
 	for i in 4:
 		var s := HotbarSlot.new()
 		s.name = "Item%d" % i
+		s.index = 4 + i
+		s.is_skill = false
 		s.pressed.connect(func(): if _can_act(): PlayerState.use_item(i))
 		_item_slots.append(s)
 		_hotbar.add_child(s)
@@ -122,30 +115,31 @@ func _build() -> void:
 	# Кнопки меню — левый верхний угол, видны и в хабе: книга, карта, пауза.
 	_menu_buttons = HBoxContainer.new()
 	_menu_buttons.name = "MenuButtons"
-	_menu_buttons.position = Vector2(6, 6)
+	_menu_buttons.position = Vector2(8, 7)
 	_menu_buttons.add_theme_constant_override("separation", 6)
 	_menu_buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_menu_buttons)
-	_menu_button("BookButton", ICON_BOOK, &"inventory", "Книга", func(): _open_book(-1))
-	_menu_button("MapButton", ICON_MAP, &"journal", "Карта", func():
+	_menu_button("BookButton", "ic_book", "tag_TAB", "Книга", func(): _open_book(-1))
+	_menu_button("MapButton", "ic_map", "tag_M", "Карта", func():
 		var book := get_tree().current_scene.get_node_or_null("Book") as Book
 		if book and not get_tree().paused:
 			book.open_map())
-	_menu_button("MenuButton", ICON_GEAR, &"pause", "Меню", func():
+	_menu_button("MenuButton", "ic_gear", "tag_ESC", "Меню", func():
 		var pause := get_tree().current_scene.get_node_or_null("PauseMenu")
 		if pause and not get_tree().paused:
 			pause.open())
 
-	# Гелиосы — правый верхний угол, видны и в хабе.
-	_helios_box = HBoxContainer.new()
-	_helios_box.name = "Helios"
-	_helios_box.add_theme_constant_override("separation", 3)
+	# Гелиосы — плашка в правом верхнем углу (рисуется из спрайта plaque), видна и в хабе.
+	_plaque = _Plaque.new()
+	_plaque.name = "Helios"
+	_plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_plaque)
 	_helios_label = _label("0", 8)
 	_helios_label.pivot_offset = Vector2(0, 4)
-	_helios_box.add_child(_helios_label)
-	var coin := _icon("Coin", ICON_HELIOS)
-	_helios_box.add_child(coin)
-	add_child(_helios_box)
+	_helios_label.add_theme_constant_override("outline_size", 0)
+	_helios_label.add_theme_color_override("font_color", Color("f4e4b0"))
+	_helios_label.position = Vector2(17, 3)
+	_plaque.add_child(_helios_label)
 	_delta_label = _label("", 8)
 	_delta_label.modulate.a = 0.0
 	add_child(_delta_label)
@@ -166,53 +160,80 @@ func _build() -> void:
 
 
 func _layout() -> void:
+	var L := HudAtlas.layout()
 	var w := size.x
 	var h := size.y
-	var cx := floorf(w / 2.0)
-	var slot_y := h - BOTTOM - SLOT
-	var skills_x := cx - CENTER_W / 2.0 - 5 - GROUP_W
-	var items_x := cx + CENTER_W / 2.0 + 5
-	var bar_h := 9
-	var bar_y := slot_y - 3 - bar_h
-
-	var plank: NinePatchRect = _hotbar.get_node("Plank")
-	plank.position = Vector2(skills_x - 5 - PLANK_BORDER + 2, bar_y - 4 - PLANK_BORDER + 2)
-	plank.size = Vector2(GROUP_W * 2 + CENTER_W + 10 + 10 + 2 * (PLANK_BORDER - 2), h - plank.position.y)
-
-	_hp_bar.position = Vector2(skills_x + 13, bar_y)
-	_hp_bar.size = Vector2(GROUP_W - 13, bar_h)
-	_hotbar.get_node("HeartIcon").position = Vector2(skills_x, bar_y)
-	_energy_bar.position = Vector2(items_x, bar_y)
-	_energy_bar.size = Vector2(GROUP_W - 12, bar_h)
-	_hotbar.get_node("SoulIcon").position = Vector2(items_x + GROUP_W - 10, bar_y)
-
-	var sparks_w := 7 * _sparks.size() + 3 * (_sparks.size() - 1)
+	var ox := floorf(w / 2.0) - 320.0     # раскладка нарисована для холста 640×360: низ — от центра и нижнего края
+	var oy := h - 360.0
+	var sy: float = L["slot_y"] + oy
+	_plank.position = Vector2(L["plank_pos"][0] + ox, L["plank_pos"][1] + oy)
+	_tray_l.position = Vector2(L["skills_x"] - 2 + ox, sy - 2)
+	_tray_r.position = Vector2(L["items_x"] - 2 + ox, sy - 2)
+	var by: float = L["bar_y"] + oy
+	_hp_bar.position = Vector2(L["hp_x"] + ox, by)
+	_energy_bar.position = Vector2(L["en_x"] - 4 + ox, by)
+	_heart.position = Vector2(L["hp_x"] - 3 + ox, by - 2)
+	_soul.position = Vector2(L["en_x"] + L["bar_w"] - 9 + ox, by - 2)
+	var mcx: float = L["med_cx"] + ox
+	var mcy: float = L["med_cy"] + oy
+	_medallion.position = Vector2(mcx - 21, mcy - 21)
 	for i in _sparks.size():
-		_sparks[i].position = Vector2(cx - floorf(sparks_w / 2.0) + i * 10, bar_y - 12)
-
-	# Эмблема-печать по центру, чуть выше ряда ячеек; рамка уже нарисована в самой картинке.
-	_hotbar.get_node("EmblemSocket").visible = false
-	var emb: TextureRect = _hotbar.get_node("Emblem")
-	emb.position = Vector2(cx - emb.texture.get_width() / 2.0, slot_y + SLOT / 2.0 - emb.texture.get_height() / 2.0 - 2)
-
+		var a := deg_to_rad(-L["spark_deg"] + i * (2.0 * L["spark_deg"] / 8.0))
+		_sparks[i].position = Vector2(roundf(mcx + sin(a) * L["spark_r"] - 3.5), roundf(mcy - cos(a) * L["spark_r"] - 4.5))
 	for i in 4:
-		_skill_slots[i].position = Vector2(skills_x + i * (SLOT + GAP), slot_y)
-		_item_slots[i].position = Vector2(items_x + i * (SLOT + GAP), slot_y)
-
-	_helios_box.reset_size()
-	_helios_box.position = Vector2(w - 8 - _helios_box.size.x, 8)
-	_delta_label.position = Vector2(w - 8 - 40, 20)
+		_skill_slots[i].position = Vector2(L["skills_x"] + ox + i * (L["slot"] + L["gap"]), sy)
+		_item_slots[i].position = Vector2(L["items_x"] + ox + i * (L["slot"] + L["gap"]), sy)
+	_refresh_plaque()
+	_delta_label.position = Vector2(w - 8 - 40, 22)
 	_delta_label.size = Vector2(40, 10)
 	_delta_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_minimap.position = Vector2(w - 6 - _minimap.size.x, 30)
-	_zone_label.position = Vector2(0, 84)  # ниже кнопок меню и отладочной подсказки
+	_minimap.position = Vector2(w - 104, 21)
+	_zone_label.position = Vector2(0, 124)  # ниже кнопок меню и круга миникарты
 	_zone_label.size = Vector2(w, 16)
+
+
+## Плашка гелиосов: ширина по числу цифр, правый край — 6 px от края холста.
+func _refresh_plaque() -> void:
+	var digits := str(PlayerState.helios).length()
+	var pw := 22 + digits * 8
+	_plaque.size = Vector2(pw, 14)
+	_plaque.position = Vector2(size.x - 6 - pw, 5)
+	_plaque.queue_redraw()
+
+
+## Плашка: левый и правый край из спрайта, середина тянется повтором 20-го столбца.
+class _Plaque extends Control:
+	func _draw() -> void:
+		var sp := HudAtlas.tex("plaque")
+		var r := sp.region
+		var w := int(size.x)
+		var left := AtlasTexture.new()
+		left.atlas = sp.atlas
+		left.region = Rect2(r.position, Vector2(8, r.size.y))
+		draw_texture(left, Vector2.ZERO)
+		var mid := AtlasTexture.new()
+		mid.atlas = sp.atlas
+		mid.region = Rect2(r.position + Vector2(24, 0), Vector2(4, r.size.y))
+		var x := 8
+		while x < w - 8:
+			var cw := mini(4, w - 8 - x)
+			var piece := AtlasTexture.new()
+			piece.atlas = sp.atlas
+			piece.region = Rect2(r.position + Vector2(24, 0), Vector2(cw, r.size.y))
+			draw_texture(piece, Vector2(x, 0))
+			x += cw
+		var right := AtlasTexture.new()
+		right.atlas = sp.atlas
+		right.region = Rect2(r.position + Vector2(r.size.x - 8, 0), Vector2(8, r.size.y))
+		draw_texture(right, Vector2(w - 8, 0))
+		draw_texture(HudAtlas.tex("coin"), Vector2(3, 0))
 
 
 func _process(_delta: float) -> void:
 	for i in 4:
 		var s: SkillData = PlayerState.hotbar_skills[i]
 		_skill_slots[i].cooldown = PlayerState.skill_cooldown_ratio(i)
+		_skill_slots[i].cooldown_secs = 0.0
 		_skill_slots[i].dimmed = s != null and PlayerState.energy < s.energy_cost
 	if _atmosphere:
 		var preset := _atmosphere.current_preset()
@@ -250,22 +271,22 @@ func _on_deaths_changed(deaths: int) -> void:
 	for i in _sparks.size():
 		var spent := i < deaths
 		var spark := _sparks[i]
-		if spent and spark.texture == SPARK_FULL:
+		if spent and spark.texture == HudAtlas.tex(SPARK_FULL_NAME):
 			# Искра «тонет»: вспыхивает, опускается и темнеет до цвета Тихой Воды.
 			var base_y := spark.position.y
 			var t := create_tween()
 			t.tween_property(spark, "scale", Vector2(1.6, 1.6), 0.12)
-			t.tween_callback(func(): spark.texture = SPARK_SPENT)
+			t.tween_callback(func(): spark.texture = HudAtlas.tex(SPARK_SPENT_NAME))
 			t.tween_property(spark, "scale", Vector2.ONE, 0.2)
 			t.parallel().tween_property(spark, "position:y", base_y + 2, 0.2)
 			t.tween_property(spark, "position:y", base_y, 0.4)
 		elif not spent:
-			spark.texture = SPARK_FULL
+			spark.texture = HudAtlas.tex(SPARK_FULL_NAME)
 
 
 func _on_helios_changed(helios: int, delta: int) -> void:
 	_helios_label.text = str(helios)
-	_layout()
+	_refresh_plaque()
 	var bump := create_tween()
 	bump.tween_property(_helios_label, "scale", Vector2(1, 1.3), 0.06)
 	bump.tween_property(_helios_label, "scale", Vector2.ONE, 0.12)
@@ -274,7 +295,7 @@ func _on_helios_changed(helios: int, delta: int) -> void:
 	_delta_label.text = ("+%d" if delta > 0 else "−%d") % absi(delta)
 	_delta_label.add_theme_color_override("font_color", Color("e8c870") if delta > 0 else Color("b07ae0"))
 	_delta_label.modulate.a = 1.0
-	var y := 20.0
+	var y := 22.0
 	_delta_label.position.y = y
 	var t := create_tween()
 	t.tween_property(_delta_label, "position:y", y + (4.0 if delta < 0 else -4.0), 0.9)
@@ -297,11 +318,17 @@ func _set_hub(hub: bool) -> void:
 	t.tween_property(_hotbar, "modulate:a", 0.0 if hub else 1.0, 0.4)
 
 
-func _menu_button(node_name: String, icon: Texture2D, action: StringName, tip: String, callback: Callable) -> void:
-	var b := RoundButton.new(icon, action, tip)
+func _menu_button(node_name: String, icon_sprite: String, tag_sprite: String, tip: String, callback: Callable) -> void:
+	var b := RoundButton.new(icon_sprite, tag_sprite, tip)
 	b.name = node_name
 	b.pressed.connect(callback)
 	_menu_buttons.add_child(b)
+
+
+func _atlas_rect(node_name: String, sprite: String) -> TextureRect:
+	var r := _icon(node_name, HudAtlas.tex(sprite))
+	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	return r
 
 
 func _icon(node_name: String, tex: Texture2D) -> TextureRect:

@@ -19,6 +19,8 @@ signal eating_cancelled
 ## Изменились инвентарь, экипировка, души или хотбар.
 signal items_changed
 signal stats_changed
+signal buff_started(title: String)
+signal buff_ended(title: String)
 signal lantern_lit(key: String)
 
 ## Мастер-меню отладки (Cheats): бессмертие — урон не проходит.
@@ -61,6 +63,8 @@ var hp: float
 var energy: float
 ## Еда, которую Рэй сейчас ест (start_use), иначе null.
 var eating: ItemData
+## Баффы зелий Ларпа: вид → {left, power, title}. Не сохраняются: снимаются при смерти и загрузке.
+var buffs: Dictionary = {}
 var deaths: int = 0
 var helios: int = 0
 ## Гелиосы, найденные в текущем спуске: только они теряются при смерти.
@@ -77,6 +81,10 @@ var chapter: int = 1
 var crossroads_visits: int = 0
 ## Что в мире уже сделано навсегда: открытые двери, пустые сундуки, подобранные ключи ("сцена:узел").
 var taken: Array[String] = []
+## Репутация по группам: {"peasants": n, "smugglers": n} (Литература/NPC_DRAFTS.md, «Агата и Ларп»).
+var reputation: Dictionary = {}
+## Игровые сутки (TimeOfDay.day), когда сдан квест: для «спустя сутки» и цикла заказов.
+var quest_days: Dictionary = {}
 
 ## Инвентарь: [{"item": ItemData, "count": int}], экипировка: слот -> ItemData.
 var inventory: Array[Dictionary] = []
@@ -98,6 +106,7 @@ func _ready() -> void:
 ## Чистое состояние для новой игры: стартовый набор, полное здоровье.
 func reset() -> void:
 	eating = null
+	buffs.clear()
 	deaths = 0
 	helios = 0
 	run_helios = 0
@@ -107,6 +116,8 @@ func reset() -> void:
 	chapter = 1
 	crossroads_visits = 0
 	taken.clear()
+	reputation.clear()
+	quest_days.clear()
 	_cooldowns.clear()
 	inventory.clear()
 	equipment.clear()
@@ -214,7 +225,7 @@ func recompute_stats() -> void:
 	max_hp = BASE_HP + bonus["max_hp"]
 	max_energy = BASE_ENERGY + bonus["max_energy"]
 	damage_bonus = BASE_DAMAGE + bonus["damage"]
-	defense = bonus["defense"]
+	defense = bonus["defense"] + buff_power(&"defense")
 	hp = minf(hp, max_hp)
 	energy = minf(energy, max_energy)
 	stats_changed.emit()
@@ -294,6 +305,9 @@ func use_item(index: int) -> bool:
 ## Начать использовать расходник: настойка — сразу, еда — Рэй ест use_time секунд (ведёт Player:
 ## по окончании finish_eating, удар или рывок — cancel_eating, предмет тогда не тратится).
 func start_use(item: ItemData) -> bool:
+	# Последнюю вещь, которую надо сдать по квесту, не выпить: второй раз её не добыть.
+	if count_of(item) <= 1 and QuestState.needs_item(String(item.id)):
+		return false
 	# Без Рэя в сцене есть некому (и некому закончить) — тогда сразу.
 	if item.use_time <= 0.0 or get_tree().get_first_node_in_group("player") == null:
 		consume(item)
@@ -324,6 +338,8 @@ func consume(item: ItemData) -> void:
 	if item.energy > 0.0:
 		energy = minf(energy + item.energy, max_energy)
 		energy_changed.emit(energy, max_energy)
+	if item.buff != &"":
+		add_buff(item.buff, item.buff_power, item.buff_time, item.name)
 	var slot_index := hotbar_items.find(item)
 	remove_item(item, 1)
 	if slot_index >= 0 and hotbar_items[slot_index] == null:
@@ -346,8 +362,37 @@ func _process(delta: float) -> void:
 	if _regen_wait > 0.0:
 		_regen_wait -= delta
 	elif energy < max_energy:
-		energy = minf(energy + energy_regen * delta, max_energy)
+		energy = minf(energy + energy_regen * (1.0 + buff_power(&"regen")) * delta, max_energy)
 		energy_changed.emit(energy, max_energy)
+	for kind in buffs.keys():
+		buffs[kind]["left"] -= delta
+		if buffs[kind]["left"] <= 0.0:
+			var title: String = buffs[kind]["title"]
+			buffs.erase(kind)
+			if kind == &"defense":
+				recompute_stats()
+			buff_ended.emit(title)
+
+
+# --- Баффы зелий ---------------------------------------------------------------
+
+## Повторное зелье того же вида обновляет время, а не складывается.
+func add_buff(kind: StringName, power: float, time: float, title: String) -> void:
+	buffs[kind] = {"left": time, "power": power, "title": title}
+	if kind == &"defense":
+		recompute_stats()
+	buff_started.emit(title)
+
+
+func buff_power(kind: StringName) -> float:
+	return buffs[kind]["power"] if buffs.has(kind) else 0.0
+
+
+func clear_buffs() -> void:
+	if buffs.is_empty():
+		return
+	buffs.clear()
+	recompute_stats()
 
 
 # --- Здоровье, энергия, смерть -------------------------------------------------
@@ -392,6 +437,7 @@ func add_helios(amount: int, found_in_run: bool = true) -> void:
 ## Смерть в спуске: +1 отметка, потеря доли гелиосов спуска. Возвращает, сколько осталось лежать на месте.
 ## at — где умер Рэй (для карты журнала и утерянной добычи).
 func die(at: Vector3 = Vector3.INF) -> int:
+	clear_buffs()
 	deaths = mini(deaths + 1, MAX_DEATHS)
 	var lost := int(round(run_helios * LOSS_BY_DIFFICULTY[difficulty]))
 	run_helios -= lost
@@ -423,6 +469,15 @@ func claim_death_mark(index: int) -> void:
 
 func is_taken(key: String) -> bool:
 	return taken.has(key)
+
+
+func reputation_of(group: String) -> int:
+	return int(reputation.get(group, 0))
+
+
+func add_reputation(group: String, amount: int) -> void:
+	reputation[group] = reputation_of(group) + amount
+	stats_changed.emit()
 
 
 func take(key: String) -> void:
@@ -477,6 +532,8 @@ func to_dict() -> Dictionary:
 		"chapter": chapter,
 		"crossroads_visits": crossroads_visits,
 		"taken": taken,
+		"reputation": reputation.duplicate(),
+		"quest_days": quest_days.duplicate(),
 	}
 
 
@@ -512,6 +569,12 @@ func from_dict(d: Dictionary) -> void:
 	chapter = int(d.get("chapter", 1))
 	crossroads_visits = int(d.get("crossroads_visits", 0))
 	taken.assign(d.get("taken", []))
+	reputation.clear()
+	for g in d.get("reputation", {}):
+		reputation[g] = int(d["reputation"][g])
+	quest_days.clear()
+	for q in d.get("quest_days", {}):
+		quest_days[q] = int(d["quest_days"][q])
 	recompute_stats()
 	hp = minf(d.get("hp", max_hp), max_hp)
 	energy = minf(d.get("energy", max_energy), max_energy)

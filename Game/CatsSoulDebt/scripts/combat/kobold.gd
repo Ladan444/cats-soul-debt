@@ -227,6 +227,11 @@ func _on_hurt(_info: Dictionary) -> void:
 		set_state("stagger")
 
 
+func die() -> void:
+	CombatFX.tint(sprite, Color.WHITE, 0.0)
+	super()
+
+
 ## Дымовая шашка: исчезает без награды (до возрождения врагов после смерти Рэя).
 func _vanish() -> void:
 	CombatFX.burst(global_position + Vector3(0, 0.6, 0), Color("8a8a80"), Vector3.ZERO, 30, 2.0, 5.0, 0.14, 0.9)

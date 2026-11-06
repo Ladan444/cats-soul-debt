@@ -58,6 +58,7 @@ func load_and_continue() -> bool:
 	if not ResourceLoader.exists(scene_path):
 		scene_path = "res://scenes/levels/world.tscn"
 	Minimap.clear_cache()
+	Cheats.reset_modes()   # чит-режимы мастер-меню (бессмертие, скорость, время) не переживают загрузку
 	PlayerState.from_dict(data.get("player", {}))
 	JournalState.from_dict(data.get("journal", {}))
 	QuestState.from_dict(data.get("quests", {}))
@@ -75,11 +76,10 @@ func new_game(difficulty: int, scene_path: String) -> void:
 	JournalState.reset()
 	QuestState.reset()
 	QuestState.start("chapter1")
+	TimeOfDay.day = 0
 	TimeOfDay.set_hour(TimeOfDay.START_HOUR)
 	# Отладочные режимы мастер-меню в новую игру не переносятся.
-	TimeOfDay.paused = false
-	TimeOfDay.speed = 1.0
-	PlayerState.god_mode = false
+	Cheats.reset_modes()
 	Minimap.clear_cache()
 	Settings.set_value("difficulty", difficulty)
 	Settings.save_settings()

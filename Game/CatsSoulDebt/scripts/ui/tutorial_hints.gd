@@ -239,7 +239,7 @@ func _build(id: String) -> void:
 func _layout() -> void:
 	if _plank == null:
 		return
-	_plank.position = Vector2(floorf((size.x - _plank.size.x) / 2.0), size.y - 64.0 - _plank.size.y)
+	_plank.position = Vector2(floorf((size.x - _plank.size.x) / 2.0), size.y - 80.0 - _plank.size.y)
 
 
 func _notification(what: int) -> void:

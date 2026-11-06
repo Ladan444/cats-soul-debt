@@ -38,16 +38,47 @@ static func save_is_finished() -> bool:
 	return int(active.get("chapter1", -1)) >= QuestState.QUESTS["chapter1"]["steps"].size()
 
 
-## Текст титров: авторы проекта и лицензии (CC-BY требует указать авторов музыки).
+## Текст титров и экрана «Авторы» (одна копия на оба места). Состав — по Проект/LEGAL.md; подписываем
+## никами (решение автора, окончательное): настоящие имена в игре не указываются.
 static func credits_text() -> String:
-	return ("Долг Кошачьей Души\n\n"
-		+ "Идея, мир, сюжет, арт-дирекшн\nLadan444\n\n"
-		+ "Код и инструменты\nс помощью Claude\n\n"
-		+ "Шрифты Public Pixel и First Time Writing — GGBotNet (CC0)\n"
-		+ "Движок — Godot Engine\n\n"
-		+ "Музыка (OpenGameArt.org)\n" + Audio.music_credits() + "\n\n"
-		+ "Звуки — Kenney (CC0), OpenGameArt.org\n"
-		+ "Модели — Quaternius (Medieval Village MegaKit, Ultimate Stylized Nature Pack), KayKit (CC0)\n\n"
+	return ("Долг Кошачьей Души
+Бета 0.0.3
+
+"
+		+ "Идея, мир, сюжет, арт-дирекшн
+Ladan444
+
+"
+		+ "Сценарий
+s1k1game
+
+"
+		+ "Художница
+Waisy Strall
+
+"
+		+ "Код и инструменты
+с помощью Claude
+
+"
+		+ "Часть арта — временные генерации ИИ,
+они будут заменены рисунками художников.
+
+"
+		+ "Шрифты Public Pixel и First Time Writing — GGBotNet (CC0)
+"
+		+ "Движок — Godot Engine (лицензия MIT, © Juan Linietsky, Ariel Manzur и разработчики Godot)
+
+"
+		+ "Музыка (OpenGameArt.org)
+" + Audio.music_credits() + "
+
+"
+		+ "Звуки — Kenney (CC0), OpenGameArt.org
+"
+		+ "Модели — Quaternius (Medieval Village MegaKit, Ultimate Stylized Nature Pack), KayKit (CC0)
+
+"
 		+ "Спасибо, что дошли до конца.")
 
 

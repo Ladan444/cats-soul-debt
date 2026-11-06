@@ -533,17 +533,19 @@ def bridge_b(coll, ox, mats):
 
 # --- Мост C: трёхарочный ----------------------------------------------------------------
 
-def bridge_c(coll, ox, mats):
-    half, w = 10.5, 3.2
+def bridge_c(coll, ox, mats, half=10.5, w=3.2):
+    """half и w — полудлина и ширина; арки и быки растягиваются вместе с длиной, стрелы арок те же."""
+    k = half / 10.5
     g = BANK
     top_z = WATER + 3.0
-    arches = [(ox - 5.9, 2.0, 1.9), (ox, 2.9, 2.5), (ox + 5.9, 2.0, 1.9)]   # центр, полупролёт, стрела
+    arches = [(ox - 5.9 * k, 2.0 * k, 1.9), (ox, 2.9 * k, 2.5), (ox + 5.9 * k, 2.0 * k, 1.9)]   # центр, полупролёт, стрела
+    inner = 8.0 * k     # докуда настил почти ровный; дальше пандус к берегу
 
     def deck(x):
         dx = abs(x - ox)
-        if dx < 8.0:
-            return top_z + 0.25 * math.cos(math.pi * dx / 16)
-        t = min((dx - 8.0) / (half - 8.0), 1.0)
+        if dx < inner:
+            return top_z + 0.25 * math.cos(math.pi * dx / (2 * inner))
+        t = min((dx - inner) / (half - inner), 1.0)
         return top_z + (g - top_z) * t
 
     def circ(cx, c, s):
@@ -575,7 +577,7 @@ def bridge_c(coll, ox, mats):
             add_wedge(bm, cx, zc, R - 0.02, R + 0.48, a0, a1, -w / 2 - 0.05, w / 2 + 0.05)
             make_obj("C: камень арки", bm, [mats["arch"]], coll, 0.03)
     # Быки с волнорезами (треугольные носы вверх и вниз по течению) — посередине между арками.
-    for px in (-3.4, 3.4):
+    for px in (-3.4 * k, 3.4 * k):
         x = ox + px
         for sy in (-1, 1):
             bm = bmesh.new()
@@ -601,7 +603,8 @@ def bridge_c(coll, ox, mats):
         bm = bmesh.new()
         add_profile(bm, xs, lambda x: deck(x) + 0.18, lambda x: deck(x) - 0.3, y - 0.14, y + 0.14, 0)
         make_obj("C: бордюр", bm, [mats.get("trim", mats["arch"])], coll)
-        posts = [ox - half + 0.3 + i * (2 * half - 0.6) / 12 for i in range(13)]
+        n_posts = max(2, round((2 * half - 0.6) / 1.7))
+        posts = [ox - half + 0.3 + i * (2 * half - 0.6) / n_posts for i in range(n_posts + 1)]
         rails = bmesh.new()
         caps = bmesh.new()
         prev = None

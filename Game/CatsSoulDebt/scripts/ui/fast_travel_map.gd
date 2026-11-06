@@ -18,6 +18,9 @@ const FADE := 0.35
 ## Godot (x, z) левого верхнего пикселя карты и метров на пиксель.
 @export var map_origin := Vector2.ZERO
 @export var map_mpp := 1.0
+## Туман поверх карты (у подземелий: неоткрытое тёмное; та же картинка, что у миникарты) и заголовок окна.
+@export var fog_texture: Texture2D
+@export var title_text := "Карта мира — Долина Серебряной Реки"
 ## Подписи мест: [[название, Vector2(x, z)], ...].
 @export var places: Array = []
 ## Перенос к зажжённому фонарю бесплатный (в том числе через проводника-сову у фонаря — он открывает эту же карту).
@@ -78,7 +81,7 @@ func _ready() -> void:
 	_view.offset_right = -8
 	_view.offset_bottom = -20
 	var head := Label.new()
-	head.text = "Карта мира — Долина Серебряной Реки"
+	head.text = title_text
 	head.add_theme_color_override("font_color", PARCHMENT)
 	head.position = Vector2(10, 6)
 	_scaler.add_child(head)
@@ -90,7 +93,8 @@ func _ready() -> void:
 	_nav.size = Vector2(380, 10)
 	_nav.clip_text = true
 	_scaler.add_child(_nav)
-	var keys := Label.new()
+	_keys = Label.new()
+	var keys := _keys
 	keys.text = "ПКМ/F/Y — метка   T — задание"
 	keys.add_theme_font_size_override("font_size", 8)
 	keys.add_theme_color_override("font_color", Color(PARCHMENT, 0.75))
@@ -128,6 +132,7 @@ func _ready() -> void:
 
 
 var _nav: Label
+var _keys: Label
 
 
 func _build_panel() -> void:
@@ -171,7 +176,9 @@ func open_map() -> void:
 	_set_open(true)
 	get_tree().paused = true
 	var hint := _scaler.get_node("Hint") as Label
-	hint.text = "%s — фонарь или точка (100 г.)  колесо — масштаб  %s/%s — фонари  %s — перенестись  %s — закрыть" % [
+	_keys.visible = Waypoints.in_world(get_tree())   # метки и платный перенос — только в большом мире
+	var first := "%s — фонарь или точка (100 г.)" if Waypoints.in_world(get_tree()) else "%s — фонарь"
+	hint.text = (first + "  колесо — масштаб  %s/%s — фонари  %s — перенестись  %s — закрыть") % [
 		"ЛКМ", InputGlyphs.label(&"ui_tab_prev"), InputGlyphs.label(&"ui_tab_next"),
 		InputGlyphs.label(&"ui_accept"), InputGlyphs.label(&"ui_cancel")]
 	await get_tree().process_frame
@@ -328,6 +335,8 @@ func _select(l: Node3D) -> void:
 
 ## Платный перенос: выбрана точка карты (m — пиксели карты).
 func _select_point(m: Vector2) -> void:
+	if not Waypoints.in_world(get_tree()):
+		return   # дорог в подземелье нет: платный перенос в точку — только в большом мире
 	var world := m * map_mpp + map_origin
 	var road: Variant = Waypoints.nearest_road_point(world)
 	if road == null:
@@ -426,6 +435,8 @@ func _draw_map() -> void:
 	var tex := map_texture.get_size()
 	var tl := _to_view(Vector2.ZERO)
 	_view.draw_texture_rect(map_texture, Rect2(tl, tex * _zoom), false)
+	if fog_texture:
+		_view.draw_texture_rect(fog_texture, Rect2(tl, tex * _zoom), false)
 	_view.draw_rect(Rect2(tl, tex * _zoom), FRAME, false, 2.0)
 	var font := _view.get_theme_default_font()
 	# Подписи мест — мелко, с обводкой; при малом масштабе — только крупные.

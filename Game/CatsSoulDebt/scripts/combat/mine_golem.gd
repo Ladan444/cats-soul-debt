@@ -22,6 +22,9 @@ const POISE_SHARE := 0.4
 const POISE_WINDOW := 3.0
 const STAGGER := 1.5
 const ROCKFALL_EVERY := 4.0
+## Мини-босс не бросает погоню раньше обычного голема, но и не идёт за Рэем через весь мир:
+## навигация есть только вокруг его площадки.
+const BOSS_LEASH := 30.0
 
 @export var boss: bool = false
 
@@ -32,6 +35,8 @@ var _slams_left: int = 0
 var _poise: Array = []  # [время, урон]
 var _rockfall: float = ROCKFALL_EVERY
 var _marker: Node3D
+## Ряд листа для паузы после удара: slam — кадр с пылью, throw — сам бросок; attack — сразу кадр 3.
+var _recover_anim: String = "attack"
 
 
 func _init() -> void:
@@ -41,7 +46,7 @@ func _init() -> void:
 	aggro_range = 10.0
 	reward_min = 25
 	reward_max = 35
-	hit_radius = 0.8
+	hit_radius = 0.7  # тело на листе ~1,3 м шириной
 	knockback_scale = 0.1
 	wander_radius = 3.0
 	hit_color = Color("8a8790")
@@ -76,7 +81,7 @@ func _make_sprite() -> DirectionalSprite:
 	s.shaded = true
 	s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 	s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	s.position.y = 1.25 * (1.25 if boss else 1.0)
+	s.position.y = 1.3 * (1.25 if boss else 1.0)  # ячейка 112: ступни на 4 px выше низа
 	return s
 
 
@@ -108,7 +113,7 @@ func _think(delta: float) -> Vector3:
 				sprite.play("walk" if v.length_squared() > 0.01 else "idle")
 				return v
 		"chase":
-			if dist > aggro_range * 1.8 and not boss:
+			if dist > (BOSS_LEASH if boss else aggro_range * 1.8):
 				set_state("idle")
 				return Vector3.ZERO
 			look_towards(to)
@@ -139,29 +144,39 @@ func _think(delta: float) -> Vector3:
 				if player in CombatFX.targets_in_arc(global_position, facing, REACH + 0.4, 90.0, "player"):
 					player.take_hit({"damage": attack_damage, "dir": facing, "knockback": 7.0})
 			if state_time >= SWING:
+				_recover_anim = "attack"
 				set_state("recover")
 		"slam_windup":
 			sprite.show_frame("slam", 0 if state_time < SLAM_WINDUP * 0.6 else 1)
+			CombatFX.tint(sprite, Color("b070ff"), 0.1 + 0.2 * (0.5 + 0.5 * sin(state_time * 25.0)))
 			if state_time >= SLAM_WINDUP:
+				CombatFX.tint(sprite, Color.WHITE, 0.0)
 				_slam()
 				_slams_left -= 1
 				if _slams_left > 0:
 					_start_slam()
 				else:
 					_slam_cd = SLAM_COOLDOWN
+					_recover_anim = "slam"
 					set_state("recover")
 		"lift":
 			look_towards(to)
-			sprite.show_frame("throw", 0)
+			# Кадр 1 — камень уже в замахе, сразу за ним снаряд вылетает (в кадрах 2–3 камня нет).
+			sprite.show_frame("throw", 0 if state_time < THROW_LIFT - 0.2 else 1)
 			if state_time >= THROW_LIFT:
-				sprite.show_frame("throw", 1)
 				var at: Vector3 = player.global_position
 				Lobbed.throw(get_parent(), global_position + Vector3(0, 2.6, 0), Vector3(at.x, global_position.y, at.z),
 					0.9, BOULDER_RADIUS, {"damage": attack_damage, "knockback": 6.0}, Color("6e6c74"), 0.45, 2.5)
 				_throw_cd = THROW_COOLDOWN
+				_recover_anim = "throw"
 				set_state("recover")
 		"recover":
-			sprite.show_frame("attack", 3)
+			var frame := 3
+			if _recover_anim == "slam" and state_time < 0.3:
+				frame = 2
+			elif _recover_anim == "throw" and state_time < 0.4:
+				frame = 2
+			sprite.show_frame(_recover_anim, frame)
 			if state_time >= RECOVER:
 				set_state("chase")
 		"stagger":
@@ -173,7 +188,7 @@ func _think(delta: float) -> Vector3:
 
 ## Подсветка замаха кайлом гаснет при любом выходе из него (удар по земле, бросок, стойкость).
 func set_state(new_state: String) -> void:
-	if state == "windup" and new_state != "windup":
+	if state in ["windup", "slam_windup"] and new_state != state:
 		CombatFX.tint(sprite, Color.WHITE, 0.0)
 	super(new_state)
 

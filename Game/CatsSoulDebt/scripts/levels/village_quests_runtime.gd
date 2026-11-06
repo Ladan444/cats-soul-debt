@@ -31,7 +31,9 @@ func _ready() -> void:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	for id in DATA.VILLAGERS:
-		var at = _free_spot(DATA.VILLAGERS[id]["poi"])
+		var info: Dictionary = DATA.VILLAGERS[id]
+		# Жители без пустышки (Агата, Ларп, купец) стоят в фиксированной точке «at» (Godot x, z), как Мика.
+		var at = _ground(Vector3(info["at"].x, 0, info["at"].y)) if info.has("at") else _free_spot(info["poi"])
 		if at == null:
 			continue
 		var npc: Node3D = VILLAGER.new()
@@ -73,6 +75,8 @@ func _ready() -> void:
 			prop.set("verb", p.get("prompt", "взять"))
 			prop.set("lines", PackedStringArray(p.get("lines", [])))
 			prop.set("persist_id", "world:quest_prop:%s:%d" % [qid, k])
+			if p.has("time_window"):
+				prop.set("time_window", Vector2(p["time_window"][0], p["time_window"][1]))
 			add_child(prop)
 			prop.global_position = _ground(_away_from_villagers((base as Vector3) + Vector3(p.get("offset", 0.0), 0, 1.5 + k)))
 			k += 1

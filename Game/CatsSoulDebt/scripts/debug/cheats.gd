@@ -7,6 +7,11 @@ extends Node
 ## 4) отладка вместо прежних клавиш F1–F10: облик, урон, смерть, гелиосы, новый спуск,
 ##    флажки «Хитбоксы», «FPS», «Лог ошибок», «Подсказка».
 
+## Мастер-меню работает только в редакторе (и при запуске тестов редакторским Godot) и в тестовых сборках с
+## пользовательским тегом `qa_build` (второй пресет экспорта «Windows QA»). В обычной сборке игрока его нет:
+## ни панели, ни клавиши O, ни логгера ошибок.
+static var ENABLED: bool = OS.has_feature("editor") or OS.has_feature("qa_build")
+
 const MAIN_MENU := "res://scenes/ui/main_menu.tscn"
 const PLACES := [
 	["Главное меню", MAIN_MENU], ["Таверна", "res://scenes/levels/tavern.tscn"],
@@ -45,6 +50,10 @@ var _was_paused: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if not ENABLED:
+		set_process(false)
+		set_process_input(false)
+		return   # сборка игрока: ничего не строим, лог ошибок не подключаем
 	errors = ErrorLog.new()
 	OS.add_logger(errors)
 	_build()
@@ -53,6 +62,8 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if not ENABLED:
+		return
 	if event.is_action_pressed("debug_menu"):
 		toggle()
 		get_viewport().set_input_as_handled()
@@ -98,6 +109,23 @@ func _process(_delta: float) -> void:
 func player() -> Node3D:
 	var scene := get_tree().current_scene
 	return scene.get_node_or_null("Player") as Node3D if scene else null
+
+
+## Сбросить чит-режимы (бессмертие, сквозь стены, скорость игры, ход времени): «Продолжить» и новая игра
+## не должны наследовать их от прошлого сеанса.
+func reset_modes() -> void:
+	god_mode = false
+	noclip = false
+	speed = 1.0
+	PlayerState.god_mode = false
+	CombatFX.base_time_scale = 1.0
+	TimeOfDay.paused = false
+	TimeOfDay.speed = 1.0
+	var p := player()
+	if p and p.has_method("set_noclip"):
+		p.set_noclip(false)
+	if _panel != null:
+		_refresh_speed()
 
 
 func set_god(on: bool) -> void:

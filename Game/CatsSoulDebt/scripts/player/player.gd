@@ -88,6 +88,7 @@ const EAT_SPEED := 0.4
 var _slow_left: float = 0.0
 var _blind_left: float = 0.0
 var _blind_rect: ColorRect
+var _night_light: OmniLight3D
 const SLOW_FACTOR := 0.6
 const BLIND_SHADER := """
 shader_type canvas_item;
@@ -110,6 +111,8 @@ func _ready() -> void:
 	CombatFX.setup_sprite(sprite)
 	PlayerState.skill_used.connect(_on_skill_used)
 	PlayerState.eating_started.connect(_on_eating_started)
+	PlayerState.buff_started.connect(func(title: String): CombatFX.float_text(global_position + Vector3(0, 2.2, 0), title, Color("8fd8d0")))
+	PlayerState.buff_ended.connect(func(title: String): CombatFX.float_text(global_position + Vector3(0, 2.2, 0), "Выдохлось: " + title, Color("c8c0b0")))
 	# Продолжение сохранённой игры: встаём туда, где сохранились.
 	if SaveGame.pending_position != null:
 		global_position = SaveGame.pending_position
@@ -172,7 +175,7 @@ func _physics_process(delta: float) -> void:
 		_combo_timer = maxf(_combo_timer - delta, 0.0)
 		if _combo_timer == 0.0:
 			_combo_next = 0
-		var target := direction * (run_speed if running else walk_speed)
+		var target := direction * (run_speed if running else walk_speed) * (1.0 + PlayerState.buff_power(&"speed"))
 		if _eat_left > 0.0:
 			target = direction * walk_speed * EAT_SPEED
 			_queued = false
@@ -383,6 +386,9 @@ func take_hit(info: Dictionary) -> float:
 	if _dead or _invulnerable > 0.0 or _ghost:
 		return 0.0
 	var amount: float = info.get("damage", 0.0)
+	# «Сердце зимы»: удары созданий фиолетового тумана (Тварь, Утопший) слабее.
+	if info.get("mist", false):
+		amount *= 1.0 - PlayerState.buff_power(&"mist")
 	CombatFX.damage_number(global_position + Vector3(0, 1.5, 0), amount * 100.0 / (100.0 + PlayerState.defense), CombatFX.COLOR_PLAYER)
 	CombatFX.shake(0.5)
 	Audio.play("hurt", global_position)
@@ -429,7 +435,23 @@ func _apply_statuses(info: Dictionary) -> void:
 		CombatFX.float_text(global_position + Vector3(0, 2.2, 0), "Оглушён", Color("e6d6b0"))
 
 
+## «Ночной глаз»: свет вокруг Рэя, ночью в полную силу, днём гаснет.
+func _update_night_light() -> void:
+	var power := PlayerState.buff_power(&"night")
+	if power > 0.0 and _night_light == null:
+		_night_light = OmniLight3D.new()
+		_night_light.position.y = 2.2
+		_night_light.omni_range = 18.0
+		_night_light.omni_attenuation = 0.6
+		_night_light.light_color = Color(0.72, 0.8, 1.0)
+		add_child(_night_light)
+	if _night_light:
+		_night_light.light_energy = power * (1.0 - TimeOfDay.daylight())
+		_night_light.visible = _night_light.light_energy > 0.0
+
+
 func _tick_statuses(delta: float) -> void:
+	_update_night_light()
 	_slow_left = maxf(_slow_left - delta, 0.0)
 	_blind_left = maxf(_blind_left - delta, 0.0)
 	if _blind_rect:

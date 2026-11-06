@@ -5,8 +5,7 @@ extends Control
 
 ## Новая игра начинается в таверне: Рэй просыпается в своей комнате (пролог Главы 1, CHAPTER1.md).
 const GAME_SCENE := "res://scenes/levels/tavern.tscn"
-const CLOTH := preload("res://assets/ui/menu_cloth.png")
-const FRAME := preload("res://assets/ui/menu_frame.png")
+const BASE := preload("res://assets/ui/menu2/base.png")   # панель, вывеска с названием, версия — одним слоем 640×360
 const PAPER := preload("res://assets/ui/panel_torn.png")
 const INK := Color("2a1e18")
 const DIFF_TEXT := [
@@ -24,6 +23,7 @@ var _settings: SettingsMenu
 var _last_focus: Control
 ## Сцена меню 640×360 UI-пикселей (размер рисунка рамы): на другом размере холста стоит по центру, вокруг — ткань.
 var _stage: Control
+var _scene: MenuScene
 
 
 func _ready() -> void:
@@ -37,13 +37,6 @@ func _ready() -> void:
 	_settings = SettingsMenu.new()
 	_settings.closed.connect(_back_to_menu)
 	add_child(_settings)
-
-	var version := Label.new()
-	version.text = "Бета 0.0.3
-Ladan444"
-	version.add_theme_color_override("font_color", Color("8a7a60"))
-	version.position = Vector2(34, 360 - 62)
-	_stage.add_child(version)
 
 	_focus_later(_menu.get_child(0))
 
@@ -73,51 +66,35 @@ func _fit_scale() -> void:
 
 
 func _build_sign() -> void:
-	# Фон — тёмно-зелёная ткань на весь экран, рама автора — поверх, по центру холста.
-	var cloth := TextureRect.new()
-	cloth.texture = CLOTH
-	cloth.stretch_mode = TextureRect.STRETCH_TILE
-	cloth.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	cloth.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(cloth)
+	# Живая сцена (MenuScene) закрывает весь экран с обрезкой по краям, панель и вывеска (base.png) — на целом масштабе по центру.
+	_scene = MenuScene.new()
+	add_child(_scene)
 	_stage = Control.new()
 	_stage.size = Vector2(640, 360)
 	_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_stage)
 	resized.connect(_center_stage)
 	_center_stage.call_deferred()
-	# Рама — картинка 1920×1080 на холсте 640×360 (на 1080p один к одному) с линейным фильтром: чётче, чем сведённая к 640×360.
-	var frame := TextureRect.new()
-	frame.texture = FRAME
-	frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	frame.stretch_mode = TextureRect.STRETCH_SCALE
-	frame.size = Vector2(640, 360)
-	frame.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_stage.add_child(frame)
-	# Название — английское, одной строкой в деревянной табличке рамы (по рисунку: x 109–528, y 29–69 холста над
-	# эмблемой кошки); 16 px без сжатия интервала — 19 знаков = 304 px (24 px не влезает в табличку), буквы чёткие.
-	var l := Label.new()
-	l.text = "The Cat's Soul Debt"
-	l.add_theme_font_size_override("font_size", 16)
-	l.add_theme_color_override("font_color", Color("e8c870"))
-	l.add_theme_color_override("font_outline_color", Color("2e1d14"))
-	l.add_theme_constant_override("outline_size", 3)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	l.position = Vector2(109, 29)
-	l.size = Vector2(419, 38)
-	_stage.add_child(l)
+	var base := TextureRect.new()
+	base.texture = BASE
+	base.size = Vector2(640, 360)
+	base.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stage.add_child(base)
 
 
 func _center_stage() -> void:
 	_stage.position = ((size - _stage.size) / 2.0).floor()
+	# Сцена: «cover» — масштаб по большей стороне, по центру (на 16:9 один к одному со _stage).
+	var k := maxf(size.x / 640.0, size.y / 360.0)
+	_scene.scale = Vector2(k, k)
+	_scene.position = ((size - Vector2(640, 360) * k) / 2.0).floor()
 
 
 func _build_menu() -> void:
 	_menu = VBoxContainer.new()
-	_menu.position = Vector2(48, 158)
-	_menu.add_theme_constant_override("separation", 4)
+	_menu.position = Vector2(25, 90)
+	_menu.add_theme_constant_override("separation", 7)
 	_stage.add_child(_menu)
 	if SaveGame.has_save():
 		_item("Продолжить", func(): ChapterEndScreen.open(get_tree()) if ChapterEndScreen.save_is_finished() else SaveGame.load_and_continue())
@@ -133,9 +110,8 @@ func _build_menu() -> void:
 	_item("Выход", func(): get_tree().quit())
 
 
-func _item(text: String, action: Callable) -> ClawButton:
-	var b := ClawButton.new(text)
-	b.custom_minimum_size.x = 140
+func _item(text: String, action: Callable) -> MenuPlate:
+	var b := MenuPlate.new(text)
 	b.pressed.connect(func():
 		_last_focus = b
 		action.call())
@@ -214,25 +190,7 @@ func _build_credits() -> NinePatchRect:
 	text.add_theme_color_override("font_color", INK)
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD
 	text.custom_minimum_size.x = p.size.x - 46
-	text.text = ("Долг Кошачьей Души
-
-"
-		+ "Идея, мир, сюжет, арт-дирекшн — Ladan444
-"
-		+ "Код и инструменты — с помощью Claude
-"
-		+ "Шрифты Public Pixel и First Time Writing — GGBotNet (CC0)
-"
-		+ "Движок — Godot Engine
-
-"
-		+ "Музыка (OpenGameArt.org):
-" + Audio.music_credits() + "
-
-"
-		+ "Звуки — Kenney (CC0), OpenGameArt.org
-"
-		+ "Модели — Quaternius (Medieval Village MegaKit, Ultimate Stylized Nature Pack), KayKit (CC0)")
+	text.text = ChapterEndScreen.credits_text()   # одна копия состава: Проект/LEGAL.md
 	scroll.add_child(text)
 	var back := ClawButton.new("Назад", true)
 	back.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN

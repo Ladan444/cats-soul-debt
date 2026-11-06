@@ -401,6 +401,114 @@ class EditGroup:
             POINTS[k] = (name, v.x, v.y, v.z)
 
 
+BRIDGE_TOE = 1.0      # край настила заходит в землю на столько метров: ступеньки на въезде нет
+BRIDGE_PLAN = []
+
+
+def bridge_plan():
+    """Мосты: где стоят и где их концы. Речные — поперёк реки в середине отрезка из W["BRIDGES"], концы на суше
+    (4 м от кромки воды). У каждого конца: E — точка, где настил выходит на землю, out — наружу вдоль оси моста,
+    road — конец дороги из W["ROADS"], appr — длина прямого подхода, z — высота (bridge_banks)."""
+    if BRIDGE_PLAN:
+        return BRIDGE_PLAN
+    for name, a, b in W["BRIDGES"]:
+        pa, pb = P(*a), P(*b)
+        if name == "Мост к воротам Рубежа":
+            gate = P(*W["FORTRESS"]["gate"])
+            bank = pb if math.hypot(pb[0] - gate[0], pb[1] - gate[1]) > 20 else pa
+            L = math.hypot(bank[0] - gate[0], bank[1] - gate[1])
+            out = ((bank[0] - gate[0]) / L, (bank[1] - gate[1]) / L)
+            BRIDGE_PLAN.append({"name": name, "kind": "gate", "gate": gate, "surf": LAKE_Z,
+                                "ends": [{"E": bank, "out": out, "road": bank, "appr": 10.0}]})   # 10 м: башня у берега
+            continue
+        (qx, qy), flow, width, surf = river_at((pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2)
+        axis = flow + math.pi / 2
+        ux, uy = math.cos(axis), math.sin(axis)
+        half = width / 2 + 4.0
+        ends = []
+        for s in (-1, 1):
+            E = (qx + ux * s * half, qy + uy * s * half)
+            road = min((pa, pb), key=lambda p: math.hypot(p[0] - E[0], p[1] - E[1]))
+            ends.append({"E": E, "out": (ux * s, uy * s), "road": road, "appr": 6.0})
+        kind = {"Главный мост": "stone", "Ветхий мостик": "rickety"}.get(name, "wood")
+        BRIDGE_PLAN.append({"name": name, "kind": kind, "q": (qx, qy), "axis": axis, "half": half, "width": width,
+                            "surf": surf, "ends": ends})
+    return BRIDGE_PLAN
+
+
+def bridge_into(e):
+    """Куда упирается лента дороги: на 1 м под настил (стыка не видно)."""
+    return (e["E"][0] - e["out"][0], e["E"][1] - e["out"][1])
+
+
+def bridge_approach(pts):
+    """Дорога, кончающаяся у моста, идёт к его концу и на настил прямо вдоль оси (иначе упирается в перила).
+    Старая конечная точка убирается, если лежит почти у моста или дала бы крутой поворот."""
+    pts = list(pts)
+    for br in bridge_plan():
+        for e in br["ends"]:
+            appr = (e["E"][0] + e["out"][0] * e["appr"], e["E"][1] + e["out"][1] * e["appr"])
+            for rev in (False, True):
+                seq = pts[::-1] if rev else pts
+                end, prev = seq[-1], seq[-2]
+                if math.hypot(end[0] - e["road"][0], end[1] - e["road"][1]) > 6.0:
+                    continue
+                turn = abs((math.atan2(appr[1] - end[1], appr[0] - end[0]) -
+                            math.atan2(end[1] - prev[1], end[0] - prev[0]) + math.pi) % math.tau - math.pi)
+                if math.hypot(end[0] - e["E"][0], end[1] - e["E"][1]) < 8.0 or turn > math.radians(60):
+                    seq = seq[:-1]
+                seq = seq + [appr, bridge_into(e)]
+                pts = seq[::-1] if rev else seq
+    return pts
+
+
+def bridge_banks(h, river):
+    """После прорезки воды: у концов мостов — площадка на высоте настила, от неё вдоль дороги пологий подъём (30 м)
+    к прежнему рельефу. Русло не засыпается: у воды рельеф остаётся прежним."""
+    d_r, _, half_r = river
+    h0 = h.copy()
+    road_half = {"road": 2.6, "paved": 2.8, "path": 1.5, "lane": 1.1}
+    for br in bridge_plan():
+        for e in br["ends"]:
+            z = sample(h0, *e["E"])
+            if br["kind"] == "gate":
+                e["z"] = max(z, LAKE_Z + 2.7)         # край настила дамбы не ниже LAKE_Z + 2.6 (causeway)
+            elif br["kind"] == "stone":
+                e["z"] = min(max(z, br["surf"] + 1.4), br["surf"] + 2.2)
+            else:
+                e["z"] = min(max(z, br["surf"] + 1.2), br["surf"] + 3.2)
+        if br["kind"] == "stone":                     # трёхарочный симметричен: концы на одной высоте
+            mean = sum(e["z"] for e in br["ends"]) / 2
+            for e in br["ends"]:
+                e["z"] = mean
+        for e in br["ends"]:
+            into = bridge_into(e)
+            for kind, pts in ROAD_LINES:
+                if math.hypot(pts[0][0] - into[0], pts[0][1] - into[1]) < 0.01:
+                    seq = pts
+                elif math.hypot(pts[-1][0] - into[0], pts[-1][1] - into[1]) < 0.01:
+                    seq = pts[::-1]
+                else:
+                    continue
+                full = resample(seq, 2.0)
+                line, s = [full[0]], [0.0]
+                for p in full[1:]:
+                    s.append(s[-1] + math.hypot(p[0] - line[-1][0], p[1] - line[-1][1]))
+                    line.append(p)
+                    if s[-1] > 30.0:
+                        break
+                z1 = sample(h0, *line[-1])
+                zs = []
+                for sv in s:
+                    t = max(0.0, (sv - 4.0) / (s[-1] - 4.0))
+                    zs.append(e["z"] + (z1 - e["z"]) * t * t * (3.0 - 2.0 * t))
+                d, zf = line_field(line, zs)
+                h = pad(h, np.maximum(d - road_half[kind] - 0.5, 0.0), zf, 6.0)
+                e.setdefault("line", line)
+    w = smoothstep(half_r - 0.5, half_r + 3.5, d_r)
+    return h0 * (1.0 - w) + h * w
+
+
 def shape(h, fbm):
     """Площадки, террасы, поля, дороги (до прорезки воды)."""
     # Деревня — ровная терраса вокруг колодца.
@@ -441,7 +549,7 @@ def shape(h, fbm):
     road_d = np.full(GX.shape, 1e9)
     path_d = np.full(GX.shape, 1e9)
     # Дороги и тропы — плавными изгибами (сглаживание Чайкина) вместо ломаных с углами.
-    lines = [(kind, chaikin(PL(pts_px), 3)) for kind, pts_px in W["ROADS"]]
+    lines = [(kind, chaikin(bridge_approach(PL(pts_px)), 3)) for kind, pts_px in W["ROADS"]]
     lines += [("lane", pts) for pts in village_lanes(village_plan())]
     ROAD_LINES[:] = lines
     for kind, pts_m in lines:
@@ -502,7 +610,9 @@ def water(h):
     bank = surf - 0.8 + (top - (surf - 0.8)) * smoothstep(inner, inner + ramp, d)
     h = pad(h, np.maximum(d - inner - ramp, 0.0), top, 14.0, 0.75)
     h = np.where(d < inner + ramp, np.where(d < inner, chan, bank), h)
-    RIVER_CLIFF[:] = [cliff & (d < inner + ramp + 2.0) & (d > inner)]
+    # Берега реки не насыпаются поверх дна озера: иначе у истока кольцо суши отрезает реку от озера.
+    h = np.where((dl > 0) & (d < inner + ramp + 16.0), np.minimum(h, bed), h)
+    RIVER_CLIFF[:] =[cliff & (d < inner + ramp + 2.0) & (d > inner)]
     # Мельница Ганса: ровная площадка дома (восточная часть стоит на каменном цоколе над откосом),
     # под колесом — жёлоб, ниже по течению — омут (CANON: омут у мельницы).
     it = mill
@@ -977,16 +1087,13 @@ def merge_parts(tmp, keys, matrix, merged):
         bpy.data.objects.remove(ob, do_unlink=True)
 
 
-def stone_bridge_c(lib_b, tmp, keys, h, mid, merged):
-    """Главный мост — вариант C (выбор автора), поперёк реки в точке mid."""
-    (qx, qy), flow, width, surf = river_at(*mid)
-    axis = flow + math.pi / 2
-    ends = [(qx + math.cos(axis) * s * 11.0, qy + math.sin(axis) * s * 11.0) for s in (-1, 1)]
-    lib_b["WATER"] = surf - 0.5
-    lib_b["BANK"] = max(sample(h, *e) for e in ends)
-    lib_b["bridge_c"](tmp, 0.0, keys)
-    merge_parts(tmp, keys, Matrix.Translation((qx, qy, 0)) @ Matrix.Rotation(axis, 4, "Z"), merged)
-    return ends
+def stone_bridge_c(lib_b, tmp, keys, br, merged):
+    """Главный мост — вариант C (выбор автора), поперёк реки: концы на суше, край настила на 1 м заходит в землю."""
+    qx, qy = br["q"]
+    lib_b["WATER"] = br["surf"] - 0.5
+    lib_b["BANK"] = br["ends"][0]["z"] - 0.1
+    lib_b["bridge_c"](tmp, 0.0, keys, br["half"] + BRIDGE_TOE, 4.0)
+    merge_parts(tmp, keys, Matrix.Translation((qx, qy, 0)) @ Matrix.Rotation(br["axis"], 4, "Z"), merged)
 
 
 def causeway(lib_b, tmp, keys, a, b, z_a, z_b, water, merged, width=5.0, span=8.0):
@@ -1029,76 +1136,129 @@ def causeway(lib_b, tmp, keys, a, b, z_a, z_b, water, merged, width=5.0, span=8.
     merge_parts(tmp, keys, Matrix.Translation((a[0], a[1], 0)) @ Matrix.Rotation(rot, 4, "Z"), merged)
 
 
-def wooden_bridge(bm_wood, mid, h, rickety=False, rng=None):
-    """Деревянный мост поперёк реки: настил из досок на сваях, перила. rickety — провисший, без части досок
-    и с проломленными перилами (ветхий мостик)."""
-    rng = rng or random.Random(5)
-    (qx, qy), flow, width, surf = river_at(*mid)
-    axis = flow + math.pi / 2
-    half = width / 2 + 4.0
+def wooden_bridge(wood, planks, collider, br, rng, rickety=False):
+    """Деревянный мост поперёк реки: доски (planks, без коллизии), сваи и перила (wood), ровная невидимая дорожка
+    вдоль настила (collider, «-colonly»): между досками зазоры, а у ветхого и дыры, — Рэй не должен в них застревать.
+    rickety — провисший, без части досок и с проломленными перилами (пролом закрыт невидимой стенкой)."""
+    qx, qy = br["q"]
+    axis, half, width, surf = br["axis"], br["half"], br["width"], br["surf"]
     ux, uy = math.cos(axis), math.sin(axis)
-    za = sample(h, qx - ux * half, qy - uy * half)
-    zb = sample(h, qx + ux * half, qy + uy * half)
+    za, zb = br["ends"][0]["z"], br["ends"][1]["z"]
     W_ = 2.6
+    sag = 0.4 if rickety else 0.9
 
-    def deck(t):           # t в метрах от −half до half
-        base = za + (zb - za) * (t + half) / (2 * half)
-        lift = 0.9 * (1 - (t / half) ** 2)
-        return base + (lift - (0.5 * (1 - (t / half) ** 2) if rickety else 0.0)) + 0.3
+    def deck(t):           # верх настила; t в метрах от −half до half (и на BRIDGE_TOE дальше — в землю)
+        c = max(-half, min(half, t))
+        return za + (zb - za) * (c + half) / (2 * half) + sag * (1 - (c / half) ** 2) - 0.12 * max(0.0, abs(t) - half)
 
-    t = -half
-    while t < half:
+    t, missed = -half - BRIDGE_TOE, False
+    while t < half + BRIDGE_TOE:
         x, y = qx + ux * t, qy + uy * t
-        if not (rickety and rng.random() < 0.14 and abs(t) < width / 2):
+        missed = rickety and not missed and rng.random() < 0.14 and abs(t) < width / 2      # две дыры подряд — нет
+        if not missed:
             tilt = rng.uniform(-0.12, 0.12) if rickety else 0.0
-            box(bm_wood, x, y, deck(t) - 0.12, 0.5, W_, 0.12, axis + tilt)
+            box(planks, x, y, deck(t) - 0.12, 0.5, W_, 0.12, axis + tilt)
         t += 0.6
+    rows = []
+    for t in np.arange(-half - BRIDGE_TOE, half + BRIDGE_TOE + 0.25, 0.5):
+        x, y = qx + ux * t, qy + uy * t
+        z = deck(t) + 0.02
+        rows.append([collider.verts.new((x + uy * W_ / 2 * s, y - ux * W_ / 2 * s, z)) for s in (-1, 1)])
+    for r0, r1 in zip(rows, rows[1:]):
+        f = collider.faces.new([r0[0], r0[1], r1[1], r1[0]])
+        f.normal_update()
+        if f.normal.z < 0:
+            f.normal_flip()
     for k, t in enumerate(np.linspace(-half + 0.5, half - 0.5, int(2 * half / 3.5) + 1)):
         x, y = qx + ux * t, qy + uy * t
-        z0 = surf - 1.5 if abs(t) < width / 2 + 0.5 else sample(h, x, y) - 0.6
+        z0 = surf - 1.5 if abs(t) < width / 2 + 0.5 else deck(half) - 0.6 - abs(za - zb)
         for s in (-1, 1):
             px_, py_ = x - uy * s * (W_ / 2 + 0.1), y + ux * s * (W_ / 2 + 0.1)
-            box(bm_wood, px_, py_, z0, 0.25, 0.25, deck(t) + 1.1 - z0)
+            box(wood, px_, py_, z0, 0.25, 0.25, deck(t) + 1.1 - z0)
+    hole = 0.0
     for s in (-1, 1):
         ts = np.linspace(-half + 0.5, half - 0.5, 9)
         for t0, t1 in zip(ts, ts[1:]):
             if rickety and s > 0 and abs((t0 + t1) / 2) < 2.5:
+                hole = max(hole, abs(t0), abs(t1))
                 continue                                                  # пролом в перилах
             tm = (t0 + t1) / 2
             x, y = qx + ux * tm, qy + uy * tm
-            px_, py_ = x - uy * s * (W_ / 2 + 0.1), y + ux * s * (W_ / 2 + 0.1)
-            box(bm_wood, px_, py_, deck(tm) + 0.85, t1 - t0, 0.12, 0.12, axis)
-    return [(qx - ux * half, qy - uy * half), (qx + ux * half, qy + uy * half)]
+            px_, py_ = x - uy * (W_ / 2 + 0.1) * s, y + ux * (W_ / 2 + 0.1) * s
+            box(wood, px_, py_, deck(tm) + 0.85, t1 - t0, 0.12, 0.12, axis)
+    if hole:
+        box(collider, qx - uy * (W_ / 2 + 0.1), qy + ux * (W_ / 2 + 0.1), deck(0.0) - 0.3, 2 * hole, 0.2, 2.0, axis)
 
 
 def bridges(col, h):
     """Мосты (по концепту): главный — каменный вариант C, старый и ветхий — деревянные, к воротам Рубежа —
-    каменный арочный через рукав озера."""
+    каменный арочный через рукав озера. Геометрия — bridge_plan(), берега и подводка дорог — bridge_banks()."""
     lib_b = bridge_lib()
     tmp = bpy.data.collections.new("Мосты: детали")
     bpy.context.scene.collection.children.link(tmp)
     keys = {key: bpy.data.materials.new("bridge_" + key) for key in BRIDGE_COLORS}
     merged = {}
-    wood = bmesh.new()
-    for name, a, b in W["BRIDGES"]:
-        pa, pb = P(*a), P(*b)
-        mid = ((pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2)
-        if name == "Главный мост":
-            stone_bridge_c(lib_b, tmp, keys, h, mid, merged)
-        elif name == "Старый мостик":
-            wooden_bridge(wood, mid, h)
-        elif name == "Ветхий мостик":
-            wooden_bridge(wood, mid, h, rickety=True)
+    wood, planks, collider = bmesh.new(), bmesh.new(), bmesh.new()
+    rng = random.Random(5)
+    for br in bridge_plan():
+        if br["kind"] == "stone":
+            stone_bridge_c(lib_b, tmp, keys, br, merged)
+        elif br["kind"] == "wood":
+            wooden_bridge(wood, planks, collider, br, rng)
+        elif br["kind"] == "rickety":
+            wooden_bridge(wood, planks, collider, br, rng, rickety=True)
         else:
-            gate = P(*W["FORTRESS"]["gate"])
-            causeway(lib_b, tmp, keys, gate, pb if math.hypot(pb[0] - gate[0], pb[1] - gate[1]) > 20 else pa,
-                     WALL_Z0 + 0.2, sample(h, *pa) + 0.2, LAKE_Z, merged, 6.0)
+            e = br["ends"][0]
+            toe = (e["E"][0] + e["out"][0] * BRIDGE_TOE, e["E"][1] + e["out"][1] * BRIDGE_TOE)
+            causeway(lib_b, tmp, keys, br["gate"], toe, WALL_Z0 + 0.2, e["z"] - 0.1, LAKE_Z, merged, 6.0)
     bpy.data.collections.remove(tmp)
     for m in keys.values():
         bpy.data.materials.remove(m)
     for key, bm in merged.items():
         finish_mesh(col, "Bridge_" + key, bm, BRIDGE_COLORS[key])
     finish_mesh(col, "BridgesWood", wood, (0.46, 0.33, 0.20))
+    finish_mesh(col, "BridgesPlanks", planks, (0.46, 0.33, 0.20))
+    finish_mesh(col, "BridgesDeck-colonly", collider, (0.46, 0.33, 0.20))
+    write_bridges_json()
+
+
+def write_water_json():
+    """Гладь воды для scripts/levels/deep_water.gd (где Рэй тонет), в метрах Godot (x, z). Границы — как у water_meshes."""
+    import json
+    rp = [P(x, y) for x, y, w in W["RIVER"]]
+    n = len(rp)
+    river = []
+    for k, ((x, y), (_, _, w)) in enumerate(zip(rp, W["RIVER"])):
+        level = LAKE_Z + (RIVER_END_Z - LAKE_Z) * (k / (n - 1)) ** 0.8
+        river.append([round(x, 2), round(-y, 2), round(level - 0.5, 3), w / 2 + 1.5])
+    ponds = []
+    for x, y, r in W["PONDS"]:
+        cx, cy = P(x, y)
+        ponds.append([round(cx, 2), round(-cy, 2), r, round(POND_Z[(x, y)], 3)])
+    data = {"lake_z": LAKE_Z, "lake": [[round(x, 2), round(-y, 2)] for x, y in PL(W["LAKE"])], "river": river, "ponds": ponds}
+    with open(os.path.join(os.path.dirname(NATURE_JSON), "world_water.json"), "w", encoding="utf-8") as f:
+        json.dump(data, f, separators=(",", ":"))
+
+
+def write_bridges_json():
+    """Маршруты для теста Tools/godot/tests/world_bridges_test.gd: дорога — настил — дорога, в метрах Godot (x, z)."""
+    import json
+    out = []
+
+    def gd(p):
+        return [round(p[0], 2), round(-p[1], 2)]
+    for br in bridge_plan():
+        ends = br["ends"]
+        road = [[gd(p) for p in reversed(e["line"][1::3])] for e in ends]
+        if br["kind"] == "gate":
+            e = ends[0]
+            far = (br["gate"][0] + e["out"][0] * 8.0, br["gate"][1] + e["out"][1] * 8.0)
+            out.append({"name": br["name"], "water": br["surf"], "a": road[0], "deck": [gd(e["E"]), gd(far)], "b": []})
+        else:
+            out.append({"name": br["name"], "water": br["surf"], "a": road[0], "deck": [gd(ends[0]["E"]), gd(ends[1]["E"])],
+                        "b": road[1][::-1]})
+    with open(os.path.join(os.path.dirname(NATURE_JSON), "world_bridges.json"), "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, indent=0)
 
 
 def rotated_box(bm, cx, cy, cz, w, d, hgt, rot_y=0.0, rot_z=0.0):
@@ -3151,6 +3311,7 @@ def build():
     h, fbm, ridge, detail = heights()
     h, road_d, path_d = shape(h, fbm)
     h, river, dl = water(h)
+    h = bridge_banks(h, river)
     forest = forest_density(h, fbm, road_d, path_d, river, dl)
     c = colors(h, fbm, road_d, path_d, river, dl, forest)
     write_godot_data(h, fbm, road_d, path_d, river, dl, forest)
@@ -3170,6 +3331,7 @@ def build():
         for v in ponds.data.vertices:
             if math.hypot(v.co.x - cx, v.co.y - cy) <= r + 0.1:
                 v.co.z = surf
+    write_water_json()
     fortress(col, h)
     bridges(col, h)
     village(col, h)

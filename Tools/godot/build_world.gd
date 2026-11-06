@@ -27,6 +27,11 @@ const PLACES := {"rubezh": "Каменный Рубеж", "main_bridge": "Гла
 	"logging": "Заброшенная вырубка", "shrine": "Лесное святилище", "cemetery": "Старое кладбище",
 	"mine": "Заброшенная шахта", "cave": "Пещера", "gorge": "Ущелье", "adit": "Старая штольня",
 	"pier": "Пристань Оды", "hermit": "Хижина Клауса", "south_edge": "К южным землям"}
+## Алхимический Уголок (Blender x, y): у восточного въезда, фасад — к дороге (её край в ~4 м к югу, деревья не задеты).
+const ALCHEMY_ID := "house:alchemy"
+const ALCHEMY_AT := Vector2(51.0, -8.0)
+const ALCHEMY_SOURCE := "Edit_house_shed1/Houses__house_shed1"
+const ALCHEMY_ROOF_SAMPLE := Vector2(27.0, 18.0)
 ## Фонарь подписывается по ближайшему месту: «Фонарь: <место>» (родительный падеж не склоняем).
 
 var map_root: Node3D
@@ -92,6 +97,7 @@ func _initialize() -> void:
 	_build_lanterns(geometry)
 	_build_exits(geometry)
 	_build_pickups(geometry)
+	_build_alchemy(geometry)
 	# Жители Брода и их побочные квесты (scripts/data/village_quests.gd) — расставляются при запуске.
 	var villagers := Node3D.new()
 	villagers.name = "Villagers"
@@ -266,6 +272,198 @@ func _build_pickups(geometry: Node3D) -> void:
 		_add(p)
 
 
+## Алхимический Уголок Ларпа (CANON §1, «Алхимик Ларп»; Blender не нужен): домик-лавка у восточного въезда, фасадом
+## к дороге. Стены и крыша — меш дома-образца Quaternius (сарай shed1: штукатурка на каменном основании, те же модули,
+## что у всей деревни), развёрнутый дверью на юг; перед ним — полки со склянками, сушёные травы, стол со ступкой,
+## стопка книг, вывеска. Без интерьера. Группа правки «house:alchemy» — как у домов в glb (Tools/world_overrides.json).
+func _build_alchemy(geometry: Node3D) -> void:
+	var src := geometry.get_node_or_null(ALCHEMY_SOURCE) as MeshInstance3D
+	var o := _edit_override(ALCHEMY_ID)
+	if src == null or o.get("hide", false):
+		if src == null:
+			push_warning("нет дома-образца %s — Алхимический Уголок не собран" % ALCHEMY_SOURCE)
+		return
+	var at := _alchemy_at()
+	# Пол — по самой высокой точке под домом (земля не вылезет сквозь него), щель внизу закрывает каменный цоколь.
+	var base := -INF
+	for dx in [-3.0, 0.0, 3.0]:
+		for dy in [-4.0, 0.0, 4.0]:
+			base = maxf(base, _height(at.x + dx, at.y + dy))
+	var e := Node3D.new()
+	e.name = "Edit_house_alchemy"
+	e.position = Vector3(at.x, base, -at.y)
+	e.rotation.y = deg_to_rad(float(o.get("rot", 0.0)))
+	e.set_meta("extras", {"edit_id": ALCHEMY_ID, "base_x": ALCHEMY_AT.x, "base_y": ALCHEMY_AT.y})
+	_add(e, geometry)
+	var box_src := src.mesh.get_aabb()
+	var center := box_src.get_center()
+	var house := MeshInstance3D.new()
+	house.name = "Houses__house_alchemy"
+	house.mesh = src.mesh
+	house.transform = Transform3D(Basis(Vector3.UP, PI / 2.0), Vector3.ZERO) \
+		* Transform3D(Basis.IDENTITY, -Vector3(center.x, box_src.position.y, center.z))
+	_add(house, e)
+	var body := StaticBody3D.new()
+	body.name = "Houses__house_alchemy_col"
+	_add(body, e)
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(6.3, 3.4, 8.3)
+	shape.shape = box
+	shape.position.y = 1.7
+	_add(shape, body)
+	var door := Node3D.new()
+	door.name = "door-alchemy"
+	door.position = e.position + Vector3(0, 0, 5.2).rotated(Vector3.UP, e.rotation.y)
+	_add(door, geometry)
+	# Детали: вид меша — как у мелочей в glb (одевает world_level.gd), цвет в вершинах.
+	var wood := Color(0.46, 0.33, 0.20)
+	var dark := Color(0.33, 0.24, 0.16)
+	var stone := Color(0.60, 0.59, 0.56)
+	var b := {"Detail_wood": {}, "Detail_stone": {}, "Detail_bottles": {}, "Detail_herbs": {}}
+	_part(b["Detail_stone"], _cube(Vector3(6.02, 0.7, 8.02)), Vector3(0, -0.35, 0), stone)            # цоколь
+	_part(b["Detail_stone"], _cube(Vector3(1.5, 0.3, 0.9)), Vector3(0, -0.15, 4.55), stone)           # порог
+	# Полки со склянками — слева от двери.
+	for x in [-2.75, -1.25]:
+		_part(b["Detail_wood"], _cube(Vector3(0.1, 2.0, 0.1)), Vector3(x, 1.0, 4.24), dark)
+	var glass := [Color(0.25, 0.7, 0.4), Color(0.85, 0.55, 0.15), Color(0.2, 0.65, 0.7), Color(0.55, 0.35, 0.8), Color(0.75, 0.2, 0.2)]
+	for s in 2:
+		var y := 0.85 + 0.62 * s
+		_part(b["Detail_wood"], _cube(Vector3(1.7, 0.06, 0.34)), Vector3(-2.0, y, 4.28), wood)
+		for k in 6:
+			var x := -2.68 + 0.27 * k
+			var tall := 0.16 + 0.05 * ((k + s) % 3)
+			var c: Color = glass[(k * 2 + s) % glass.size()]
+			_part(b["Detail_bottles"], _cyl(0.07, 0.07, tall), Vector3(x, y + 0.03 + tall / 2.0, 4.28), c)
+			_part(b["Detail_bottles"], _cyl(0.03, 0.03, 0.07), Vector3(x, y + 0.03 + tall + 0.035, 4.28), c)
+			_part(b["Detail_wood"], _cyl(0.034, 0.034, 0.03), Vector3(x, y + 0.03 + tall + 0.08, 4.28), dark)
+	# Сушёные травы — справа от двери, на жерди; под ними стол со ступкой и горшками.
+	_part(b["Detail_wood"], _cyl(0.03, 0.03, 1.9), Vector3(2.0, 2.3, 4.42), wood, Basis(Vector3.BACK, PI / 2.0))
+	for x in [1.2, 2.8]:
+		_part(b["Detail_wood"], _cube(Vector3(0.07, 0.07, 0.42)), Vector3(x, 2.3, 4.26), dark)
+	var herbs := [Color(0.42, 0.5, 0.22), Color(0.62, 0.55, 0.25), Color(0.5, 0.38, 0.6), Color(0.35, 0.45, 0.3), Color(0.7, 0.5, 0.2), Color(0.45, 0.55, 0.3)]
+	for k in 6:
+		var x := 1.25 + 0.3 * k
+		var ln := 0.38 + 0.08 * (k % 2)
+		_part(b["Detail_herbs"], _cyl(0.1, 0.025, ln), Vector3(x, 2.27 - ln / 2.0, 4.42), herbs[k])
+		_part(b["Detail_wood"], _cyl(0.032, 0.032, 0.04), Vector3(x, 2.27, 4.42), dark)
+	_part(b["Detail_wood"], _cube(Vector3(1.6, 0.07, 0.6)), Vector3(2.0, 0.78, 4.42), wood)
+	for x in [1.3, 2.7]:
+		_part(b["Detail_wood"], _cube(Vector3(0.1, 0.8, 0.5)), Vector3(x, 0.38, 4.42), dark)
+	_part(b["Detail_bottles"], _cyl(0.13, 0.09, 0.14), Vector3(1.6, 0.89, 4.42), Color(0.5, 0.5, 0.48))   # ступка
+	_part(b["Detail_wood"], _cyl(0.025, 0.025, 0.26), Vector3(1.65, 1.0, 4.42), dark, Basis(Vector3.BACK, 0.5))
+	_part(b["Detail_bottles"], _cyl(0.1, 0.13, 0.22), Vector3(2.1, 0.93, 4.46), Color(0.62, 0.36, 0.2))
+	_part(b["Detail_bottles"], _cyl(0.08, 0.1, 0.16), Vector3(2.45, 0.9, 4.38), Color(0.55, 0.32, 0.18))
+	# Стопка книг у порога («не споткнись о стопку», реплика Ларпа).
+	var books := [Color(0.5, 0.18, 0.15), Color(0.2, 0.32, 0.45), Color(0.3, 0.4, 0.2), Color(0.45, 0.32, 0.16)]
+	for k in 4:
+		_part(b["Detail_bottles"], _cube(Vector3(0.44, 0.09, 0.32)), Vector3(-1.05, 0.05 + 0.09 * k, 4.72), books[k], Basis(Vector3.UP, 0.25 * k - 0.3))
+	# Вывеска на столбах у дороги, лицом к камере: колба и надпись.
+	var sign_at := Vector3(3.9, 0, 5.7)
+	for s in [-0.95, 0.95]:
+		_part(b["Detail_wood"], _cube(Vector3(0.14, 3.0, 0.14)), sign_at + Vector3(s, 0.9, 0), dark)
+	_part(b["Detail_wood"], _cube(Vector3(2.1, 0.72, 0.07)), sign_at + Vector3(0, 1.95, 0), wood)
+	_part(b["Detail_wood"], _cube(Vector3(2.3, 0.1, 0.14)), sign_at + Vector3(0, 2.36, 0), dark)
+	_part(b["Detail_bottles"], _cyl(0.17, 0.17, 0.2), sign_at + Vector3(-0.72, 1.86, 0.05), Color(0.2, 0.65, 0.7))
+	_part(b["Detail_bottles"], _cyl(0.05, 0.05, 0.2), sign_at + Vector3(-0.72, 2.06, 0.05), Color(0.75, 0.8, 0.75))
+	for kind in b:
+		var mi := MeshInstance3D.new()
+		mi.name = "%s__house_alchemy" % kind
+		mi.mesh = _bucket_mesh(b[kind])
+		_add(mi, e)
+	var label := Label3D.new()
+	label.name = "Sign"
+	label.text = "Алхимический\nУголок"
+	label.font = load("res://assets/fonts/public_pixel/PublicPixel.ttf")
+	label.font_size = 16
+	label.outline_size = 0
+	label.pixel_size = 0.0075
+	label.line_spacing = 2
+	label.modulate = Color(0.13, 0.08, 0.04)
+	label.shaded = true
+	label.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	label.position = sign_at + Vector3(0.18, 1.95, 0.05)
+	_add(label, e)
+
+
+## Где стоит Уголок (Blender x, y) с учётом ручной правки.
+func _alchemy_at() -> Vector2:
+	var o := _edit_override(ALCHEMY_ID)
+	return ALCHEMY_AT + Vector2(float(o.get("dx", 0.0)), float(o.get("dy", 0.0)))
+
+
+## Ручная правка группы из Tools/world_overrides.json (меню редактора «Мир: сохранить правки»).
+func _edit_override(id: String) -> Dictionary:
+	var path := data_dir.path_join("../../Tools/world_overrides.json").simplify_path()
+	if not FileAccess.file_exists(path):
+		return {}
+	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return d.get(id, {}) if d is Dictionary else {}
+
+
+## Крыша Уголка на виде сверху (glb и рендер из Blender о нём не знают): цвет — с крыши дома-образца.
+func _stamp_alchemy(img: Image, b: Array) -> void:
+	if _edit_override(ALCHEMY_ID).get("hide", false):
+		return
+	var ppm := float(img.get_width()) / (float(b[2]) - float(b[0]))
+	var to_px := func(x: float, y: float) -> Vector2i: return Vector2i(int((x - float(b[0])) * ppm), int((float(b[3]) - y) * ppm))
+	var at := _alchemy_at()
+	var roof: Color = img.get_pixelv(to_px.call(ALCHEMY_ROOF_SAMPLE.x, ALCHEMY_ROOF_SAMPLE.y))
+	var corner: Vector2i = to_px.call(at.x - 3.0, at.y + 4.0)
+	img.fill_rect(Rect2i(corner, Vector2i(int(6.0 * ppm), int(8.0 * ppm))), roof)
+
+
+func _cube(size: Vector3) -> BoxMesh:
+	var m := BoxMesh.new()
+	m.size = size
+	return m
+
+
+func _cyl(top: float, bottom: float, height: float) -> CylinderMesh:
+	var m := CylinderMesh.new()
+	m.top_radius = top
+	m.bottom_radius = bottom
+	m.height = height
+	m.radial_segments = 8
+	m.rings = 1
+	return m
+
+
+## Добавить примитив в набор вершин вида меша (цвет — в линейном пространстве, как у lin() в build_world.py).
+func _part(bucket: Dictionary, prim: PrimitiveMesh, at: Vector3, color: Color, basis := Basis.IDENTITY) -> void:
+	var arrays := prim.get_mesh_arrays()
+	var verts: PackedVector3Array = bucket.get("v", PackedVector3Array())
+	var norms: PackedVector3Array = bucket.get("n", PackedVector3Array())
+	var cols: PackedColorArray = bucket.get("c", PackedColorArray())
+	var idx: PackedInt32Array = bucket.get("i", PackedInt32Array())
+	var first := verts.size()
+	var lin := Color(pow(color.r, 2.2), pow(color.g, 2.2), pow(color.b, 2.2))
+	var pv: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var pn: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	for i in pv.size():
+		verts.append(basis * pv[i] + at)
+		norms.append(basis * pn[i])
+		cols.append(lin)
+	for i: int in arrays[Mesh.ARRAY_INDEX]:
+		idx.append(first + i)
+	bucket["v"] = verts
+	bucket["n"] = norms
+	bucket["c"] = cols
+	bucket["i"] = idx
+
+
+func _bucket_mesh(bucket: Dictionary) -> ArrayMesh:
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = bucket["v"]
+	arrays[Mesh.ARRAY_NORMAL] = bucket["n"]
+	arrays[Mesh.ARRAY_COLOR] = bucket["c"]
+	arrays[Mesh.ARRAY_INDEX] = bucket["i"]
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return m
+
+
 ## Фонари душ: у каждого подвесного фонаря (пустышка fx-soul-lantern-NN) — SoulLantern без своей модели
 ## (свет, подсказка, точка возрождения у подножия посоха); за ними — цикл смерти.
 func _build_lanterns(geometry: Node3D) -> void:
@@ -302,6 +500,7 @@ func _build_minimap() -> void:
 		return
 	var b: Array = meta.bounds_m
 	var mpp := 2.0
+	_stamp_alchemy(img, b)
 	img.resize(int((b[2] - b[0]) / mpp), int((b[3] - b[1]) / mpp), Image.INTERPOLATE_LANCZOS)
 	var path := "res://assets/levels/world_minimap.res"
 	ResourceSaver.save(ImageTexture.create_from_image(img), path)
@@ -318,6 +517,7 @@ func _build_world_map(geometry: Node3D) -> void:
 	if not (meta is Dictionary) or img == null:
 		return
 	var b: Array = meta.bounds_m
+	_stamp_alchemy(img, b)
 	img.resize(int(b[2] - b[0]), int(b[3] - b[1]), Image.INTERPOLATE_LANCZOS)
 	img.generate_mipmaps()
 	var path := "res://assets/levels/world_map.res"

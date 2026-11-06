@@ -118,7 +118,9 @@ func _think(delta: float) -> Vector3:
 			if state_time < WINDUP * 0.5:
 				look_towards(to)
 			sprite.show_frame("attack", 0)
+			CombatFX.tint(sprite, Color("e8f0a0"), 0.2 + 0.3 * (0.5 + 0.5 * sin(state_time * 30.0)))
 			if state_time >= WINDUP:
+				CombatFX.tint(sprite, Color.WHITE, 0.0)
 				set_state("strike")
 		"strike":
 			sprite.show_frame("attack", 1 if state_time < STRIKE * 0.5 else 2)
@@ -136,10 +138,15 @@ func _think(delta: float) -> Vector3:
 				set_state("chase")
 		"throw":
 			look_towards(to)
-			sprite.show_frame("throw", 0 if state_time < THROW_WINDUP else 1)
+			sprite.show_frame("throw", 0)
 			if state_time >= THROW_WINDUP:
 				_throw_mud()
 				_throw_cd = THROW_COOLDOWN + randf_range(-0.5, 1.0)
+				set_state("thrown")
+		"thrown":
+			# Сам бросок виден: кадры 1–2 листа, потом обычная пауза.
+			sprite.show_frame("throw", 1 if state_time < 0.2 else 2)
+			if state_time >= 0.4:
 				set_state("recover")
 		"broken":
 			# Щит выбит — открыт со всех сторон.
@@ -178,6 +185,18 @@ func take_hit(info: Dictionary) -> float:
 func _on_hurt(_info: Dictionary) -> void:
 	if state == "idle":
 		set_state("chase")
+
+
+func set_state(new_state: String) -> void:
+	# Подсветка замаха гаснет при любом выходе из него (щит выбит, смерть Рэя).
+	if state == "windup" and new_state != "windup":
+		CombatFX.tint(sprite, Color.WHITE, 0.0)
+	super(new_state)
+
+
+func die() -> void:
+	CombatFX.tint(sprite, Color.WHITE, 0.0)
+	super()
 
 
 func respawn() -> void:

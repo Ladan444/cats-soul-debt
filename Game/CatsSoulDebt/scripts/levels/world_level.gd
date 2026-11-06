@@ -22,6 +22,7 @@ const DRESS := {"Fortress": ["village_wall_stone", 6.4, 2.6], "FortressRoofs": [
 	"Bridge_stone": ["village_wall_stone", 6.4, 0.0], "Bridge_cobble": ["village_square_cobble", 6.4, 0.0],
 	"Bridge_arch": ["village_stone_dressed", 3.2, 0.0], "Bridge_trim": ["village_stone_dressed", 3.2, 0.0],
 	"Bridge_wood": ["village_wood_beam", 3.2, 0.0], "BridgesWood": ["village_wood_beam", 3.2, 0.0],
+	"BridgesPlanks": ["village_wood_beam", 3.2, 0.0],
 	"VillageWood": ["village_wood_beam", 3.2, 2.2], "VillageStone": ["village_wall_stone", 6.4, 2.2],
 	"VillageThatch": ["village_grass_dry", 6.4, 2.2],
 	"Poi_stone": ["village_wall_stone", 6.4, 2.2], "Poi_rock": ["village_rock", 6.4, 2.2],
@@ -35,7 +36,7 @@ const DRESS := {"Fortress": ["village_wall_stone", 6.4, 2.6], "FortressRoofs": [
 	"Poi_thatch": ["village_grass_dry", 3.2, 2.2], "VillageDark": ["", 0.0, 2.2]}
 ## Без коллизии: тонкое и плоское (по крышам, мху и соломе не ходят, ленты дорог лежат на рельефе).
 const NO_COLLISION := ["FortressRoofs", "VillageThatch", "Detail_moss", "Detail_hay", "Detail_glass", "Detail_flame",
-	"Poi_cloth", "Poi_rune", "MillWheel", "MillMoss", "Poi_moss", "Poi_thatch", "Poi_fur"]
+	"Poi_cloth", "Poi_rune", "MillWheel", "MillMoss", "Poi_moss", "Poi_thatch", "Poi_fur", "Detail_bottles", "Detail_herbs", "BridgesPlanks"]
 ## Колесо водяной мельницы (MillWheel, начало — на оси вдоль x): наливное, верх идёт по течению, на юг; рад/с.
 const MILL_WHEEL_SPEED := 0.55
 ## Фонарь душ: стекло и огонёк (CANON: фиолетовый вихрь за стеклом).
@@ -59,6 +60,10 @@ var _mill_wheel: Node3D
 
 func _ready() -> void:
 	_player = get_node_or_null(player_path) as Node3D
+	var deep := DeepWater.new()
+	deep.name = "DeepWater"
+	deep.player = _player as CharacterBody3D
+	add_child(deep)
 	var terrain_mat := _terrain_material()
 	for chunk in get_node(terrain_path).get_children():
 		if chunk is MeshInstance3D:

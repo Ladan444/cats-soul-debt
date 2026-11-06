@@ -263,6 +263,11 @@ func _refresh_stats() -> void:
 	var ps := PlayerState
 	_stats.text = "HP       %d/%d\nДуша     %d/%d\nУрон     %d\nЗащита   %d" % [
 		ps.hp, ps.max_hp, ps.energy, ps.max_energy, ps.damage_bonus, ps.defense]
+	# Репутация видна после знакомства с Агатой / Ларпом (или как только она появилась): не выдаём заранее, что она есть.
+	if ps.is_taken("met:larp") or ps.reputation_of("peasants") > 0:
+		_stats.text += "\nКрестьяне %d" % ps.reputation_of("peasants")
+	if ps.is_taken("met:agata") or ps.reputation_of("smugglers") > 0:
+		_stats.text += "\nКонтрабандисты %d" % ps.reputation_of("smugglers")
 	_helios.text = "%d гелиосов" % ps.helios
 
 

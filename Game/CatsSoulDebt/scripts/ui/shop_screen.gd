@@ -158,7 +158,7 @@ func _refresh() -> void:
 		if first == null:
 			first = b
 	if first:
-		first.call_deferred("grab_focus")
+		_focus_later(first)   # отложенно, и только если кнопка ещё в дереве (вкладку/лавку могли закрыть)
 		_show(entries[0])
 	else:
 		_info.add_child(_label("Esc — закрыть", FADED, 8))
@@ -274,3 +274,9 @@ func _patch(tex: Texture2D, margin: int) -> NinePatchRect:
 	for m in ["patch_margin_left", "patch_margin_right", "patch_margin_top", "patch_margin_bottom"]:
 		p.set(m, margin)
 	return p
+
+
+func _focus_later(c: Control) -> void:
+	await get_tree().process_frame
+	if is_instance_valid(c) and c.is_inside_tree() and c.is_visible_in_tree():
+		c.grab_focus()

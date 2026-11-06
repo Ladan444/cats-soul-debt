@@ -106,6 +106,9 @@ func _run() -> void:
 	await wait(1.0)
 	coins = root.get_tree().get_nodes_in_group("helios_pickups")
 	for c in coins:
+		# Магнит подбирает монеты, пока Рэй идёт к предыдущей: часть уже удалена.
+		if not is_instance_valid(c):
+			continue
 		await put_player(c.global_position, Vector3.RIGHT)
 		await wait(0.2)
 	ok(ps.helios > helios0, "монеты подобраны: %d → %d" % [helios0, ps.helios])

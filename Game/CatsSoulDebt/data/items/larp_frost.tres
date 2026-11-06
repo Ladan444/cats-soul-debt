@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_marta_brew.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"larp_frost"
+name = "Сердце зимы"
+category = 1
+slot = 0
+icon = ExtResource("1_icon")
+description = "Холодный на ощупь настой. Звёздчатый мох в нём держит искры. Восстанавливает 35 HP, минуту удары созданий фиолетового тумана (Твари, Утопшие) вдвое слабее."
+stats = {}
+heal = 35.0
+buff = &"mist"
+buff_power = 0.5
+buff_time = 60.0
+max_stack = 5

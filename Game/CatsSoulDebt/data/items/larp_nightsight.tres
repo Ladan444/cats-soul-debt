@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_marta_brew.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"larp_nightsight"
+name = "Ночной глаз"
+category = 1
+slot = 0
+icon = ExtResource("1_icon")
+description = "Тёмный настой, почти чёрный. Ночью в нём что-то мерцает. Восстанавливает 20 HP, три минуты ночью вокруг Рэя светло."
+stats = {}
+heal = 20.0
+buff = &"night"
+buff_power = 1.5
+buff_time = 180.0
+max_stack = 5

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_relic.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"raven_feather"
+name = "Перо чёрной вороны"
+category = 3
+slot = 0
+icon = ExtResource("1_icon")
+description = "Чёрное, без единого блика. Лёгкое, но будто немного холодит пальцы."
+stats = {}
+heal = 0.0
+max_stack = 1

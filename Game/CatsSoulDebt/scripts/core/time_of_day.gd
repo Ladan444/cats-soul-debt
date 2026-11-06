@@ -10,6 +10,8 @@ const DAY_MINUTES := 24.0
 const START_HOUR := 9.0
 
 var hour: float = START_HOUR
+## Сколько раз часы переходили через полночь (для заданий «спустя сутки»); сохраняется.
+var day: int = 0
 var paused: bool = false
 var speed: float = 1.0
 
@@ -21,6 +23,8 @@ func _process(delta: float) -> void:
 
 
 func set_hour(value: float) -> void:
+	if value >= 24.0:
+		day += int(value / 24.0)
 	hour = fposmod(value, 24.0)
 	changed.emit(hour)
 
@@ -40,6 +44,13 @@ func is_night() -> bool:
 	return daylight() < 0.35
 
 
+## Сейчас час в окне [от, до) — окно может проходить через полночь (22 → 5).
+func in_window(from_hour: float, to_hour: float) -> bool:
+	if from_hour <= to_hour:
+		return hour >= from_hour and hour < to_hour
+	return hour >= from_hour or hour < to_hour
+
+
 ## «ЧЧ:ММ» для отладки и интерфейса.
 func clock() -> String:
 	var h := int(hour)
@@ -47,8 +58,9 @@ func clock() -> String:
 
 
 func to_dict() -> Dictionary:
-	return {"hour": hour}
+	return {"hour": hour, "day": day}
 
 
 func from_dict(data: Dictionary) -> void:
+	day = int(data.get("day", 0))
 	set_hour(float(data.get("hour", START_HOUR)))

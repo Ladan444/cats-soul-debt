@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/icon_marta_brew.png" id="1_icon"]
+[ext_resource type="Script" path="res://scripts/data/item_data.gd" id="2_item"]
+
+[resource]
+script = ExtResource("2_item")
+id = &"larp_vigor"
+name = "Бодрящий настой"
+category = 1
+slot = 0
+icon = ExtResource("1_icon")
+description = "Янтарный настой с мёдом и брусникой. Бодрит так, что дрожат усы. Восстанавливает 40 HP и 60 энергии души, минуту энергия копится вдвое быстрее."
+stats = {}
+heal = 40.0
+energy = 60.0
+buff = &"regen"
+buff_power = 1.0
+buff_time = 60.0
+max_stack = 5

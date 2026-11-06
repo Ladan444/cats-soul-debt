@@ -30,6 +30,14 @@ func _init() -> void:
 	death_sound = "soldier_death"
 
 
+func _ready() -> void:
+	super()
+	# Лист тёмный: на тёмном полу Рубежа сливался с ним. Свой свет и холодный контур — отсвет Тихой Воды.
+	var mat := sprite.material_override as ShaderMaterial
+	mat.set_shader_parameter("self_light", 0.55)
+	mat.set_shader_parameter("rim", 0.55)
+
+
 func _make_sprite() -> DirectionalSprite:
 	var s := DirectionalSprite.new()
 	s.texture = SHEET
@@ -114,7 +122,7 @@ func _think(delta: float) -> Vector3:
 
 func _hit_player() -> void:
 	if player in CombatFX.targets_in_arc(global_position, facing, REACH + 0.4, 70.0, "player"):
-		player.take_hit({"damage": attack_damage, "dir": facing, "knockback": 6.0})
+		player.take_hit({"damage": attack_damage, "dir": facing, "knockback": 6.0, "mist": true})
 
 
 func _on_hurt(info: Dictionary) -> void:

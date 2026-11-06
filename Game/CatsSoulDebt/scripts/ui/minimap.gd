@@ -9,8 +9,11 @@ extends Control
 ## Иначе карта снимается при загрузке лучами сверху по коллизиям мира (Рубеж, тестовая карта):
 ## стены, пол, пропасти, двери. С reveal = true открывается по мере того, как Рэй ходит (подземелья).
 
-const RADIUS := 34
-const RING := preload("res://assets/ui/minimap_ring.png")
+const RADIUS := 36
+const RING_SIZE := 100                 ## спрайт кольца 100×100 (hud_atlas: ring, ring_hover); окно радиусом 36 по центру
+const ZOOMS := [1.0, 2.0, 4.0]         ## UI-пикселей на метр (при 0,5 м/пикс. картинка карты остаётся чёткой)
+const BTN_R := 45.0                    ## радиус, на котором стоят кнопки у кольца
+const BTN_HIT := 11.0                  ## радиус области нажатия кнопок (хватает пальцу)
 const BAKE_MPP := 0.5
 const BAKE_BUDGET_USEC := 3000   ## сколько микросекунд кадра отдаём съёмке карты
 const REVEAL_RADIUS_M := 9.0
@@ -39,12 +42,15 @@ var _player: Node3D
 var _scene_path := ""
 var _view: Control
 var _reveal_timer := 0.0
+var _zoom_i := 1
+var _chrome: Control
+var _hot := ""          ## что под курсором: ring, plus, minus, target
+var _down := ""
 
 
 func _ready() -> void:
-	# Кольцо больше окна: отступ окна от края картинки кольца считается по его размеру.
-	var pad := (RING.get_width() - RADIUS * 2) / 2
-	custom_minimum_size = Vector2(RING.get_size())
+	var pad := (RING_SIZE - RADIUS * 2) / 2
+	custom_minimum_size = Vector2(RING_SIZE, RING_SIZE)
 	size = custom_minimum_size
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -61,11 +67,118 @@ func _ready() -> void:
 	_view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_view.draw.connect(_draw_view)
 	mask.add_child(_view)
-	var ring := TextureRect.new()
-	ring.texture = RING
-	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(ring)
+	# Кольцо, кнопки «+», «−», «Цель» и подсветка: отдельный слой поверх карты, он же ловит мышь и касание.
+	_chrome = Control.new()
+	_chrome.size = size
+	_chrome.mouse_filter = Control.MOUSE_FILTER_STOP
+	_chrome.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_chrome.draw.connect(_draw_chrome)
+	_chrome.gui_input.connect(_chrome_input)
+	_chrome.mouse_exited.connect(func():
+		_hot = ""
+		_down = ""
+		_chrome.queue_redraw())
+	add_child(_chrome)
 	_setup.call_deferred()
+
+
+## Положение кнопки у кольца (в координатах Minimap): угол по часовой от севера.
+func _btn_pos(name: String) -> Vector2:
+	var deg: float = {"plus": 240.0, "minus": 208.0, "target": 145.0}[name]
+	var a := deg_to_rad(deg)
+	return Vector2(RING_SIZE / 2.0 + sin(a) * BTN_R, RING_SIZE / 2.0 - cos(a) * BTN_R)
+
+
+func _hit(p: Vector2) -> String:
+	for n in ["plus", "minus", "target"]:
+		if p.distance_to(_btn_pos(n)) <= BTN_HIT:
+			return n
+	if p.distance_to(Vector2(RING_SIZE, RING_SIZE) / 2.0) <= RADIUS + 6.0:
+		return "ring"
+	return ""
+
+
+func _chrome_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		var h := _hit((event as InputEventMouseMotion).position)
+		if h != _hot:
+			_hot = h
+			_chrome.tooltip_text = {"plus": "Крупнее", "minus": "Мельче", "target": "Цель задания и маршрут", "ring": "Большая карта"}.get(h, "")
+			_chrome.queue_redraw()
+	elif event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		var pos := (event as InputEventMouseButton).position
+		if event.pressed:
+			_down = _hit(pos)
+			_chrome.queue_redraw()
+		else:
+			var h := _hit(pos)
+			if h != "" and h == _down:
+				_activate(h)
+			_down = ""
+			_chrome.queue_redraw()
+		_chrome.accept_event()
+
+
+func _activate(what: String) -> void:
+	match what:
+		"plus":
+			zoom_step(1)
+		"minus":
+			zoom_step(-1)
+		"target":
+			Waypoints.nav_on = not Waypoints.nav_on
+		"ring":
+			var book := get_tree().current_scene.get_node_or_null("Book") as Book
+			if book and not get_tree().paused:
+				book.open_map()
+	_chrome.queue_redraw()
+
+
+## Снятая карта подземелья для большой карты: {tex, fog, origin, mpp}; пусто — карты ещё нет (мир/таверна с готовой картинкой).
+func map_info() -> Dictionary:
+	if _tex == null or _fog_tex == null or not _reveal:
+		return {}
+	return {"tex": _tex, "fog": _fog_tex, "origin": _origin, "mpp": _mpp}
+
+
+func zoom_step(d: int) -> void:
+	_zoom_i = clampi(_zoom_i + d, 0, ZOOMS.size() - 1)
+	_zoom = ZOOMS[_zoom_i]
+	_chrome.queue_redraw()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if get_tree().paused or _tex == null:
+		return
+	if event.is_action_pressed("minimap_zoom_in"):
+		zoom_step(1)
+	elif event.is_action_pressed("minimap_zoom_out"):
+		zoom_step(-1)
+	elif event.is_action_pressed("minimap_target"):
+		Waypoints.nav_on = not Waypoints.nav_on
+		_chrome.queue_redraw()
+
+
+func _draw_chrome() -> void:
+	var ring := HudAtlas.tex("ring_hover" if _hot == "ring" else "ring")
+	_chrome.draw_texture(ring, Vector2.ZERO)
+	for n in ["plus", "minus", "target"]:
+		var d := 19.0 if n == "target" else 17.0
+		var base := "tbtn" if n == "target" else "sbtn"
+		var state := "pressed" if _down == n else ("hover" if _hot == n else "normal")
+		var at := _btn_pos(n) - Vector2(d, d) / 2.0
+		_chrome.draw_texture(HudAtlas.tex("%s_%s" % [base, state]), at.round())
+		var ic := "ic_plus" if n == "plus" else ("ic_minus" if n == "minus" else ("ic_target" if Waypoints.nav_on else "ic_target_off"))
+		var t := HudAtlas.tex(ic)
+		_chrome.draw_texture(t, (at + Vector2((d - t.get_width()) / 2.0, (d - t.get_height()) / 2.0 + (1 if _down == n else 0))).floor())
+	# Три точки уровня масштаба.
+	var a := deg_to_rad(224.0)
+	var c := Vector2(RING_SIZE / 2.0 + sin(a) * 47.0, RING_SIZE / 2.0 - cos(a) * 47.0)
+	var tdir := Vector2(cos(a), sin(a))
+	for i in 3:
+		var p := (c + tdir * (i - 1) * 3.0).round()
+		_chrome.draw_rect(Rect2(p - Vector2(1, 1), Vector2(3, 3)), Color("2a1e18"))
+		_chrome.draw_rect(Rect2(p, Vector2(1, 1)), Color("e8c870") if i <= _zoom_i else Color("5a4a3a"))
 
 
 class _Mask extends Control:
@@ -84,12 +197,12 @@ func _setup() -> void:
 		_tex = load(meta["texture"])
 		_origin = meta.get("origin", Vector2.ZERO)
 		_mpp = meta.get("mpp", 1.0)
-		_zoom = meta.get("zoom", 1.0)
+		_set_zoom_from(meta.get("zoom", 1.0))
 		_reveal = meta.get("reveal", false)
 	else:
 		# Подземелья: снимок по коллизиям (после первого кадра физики) частями за несколько кадров,
 		# открывается по мере хода.
-		_zoom = meta.get("zoom", 1.6)
+		_set_zoom_from(meta.get("zoom", 1.6))
 		_reveal = meta.get("reveal", true)
 		await get_tree().physics_frame
 		await get_tree().physics_frame
@@ -114,6 +227,15 @@ func _init_fog() -> void:
 		_fog_img.fill(COL_FOG)
 		_cache[key] = _fog_img
 	_fog_tex = ImageTexture.create_from_image(_fog_img)
+
+
+## Стартовый уровень масштаба: ближайший из ZOOMS к значению из метаданных сцены.
+func _set_zoom_from(z: float) -> void:
+	_zoom_i = 0
+	for i in ZOOMS.size():
+		if absf(ZOOMS[i] - z) < absf(ZOOMS[_zoom_i] - z):
+			_zoom_i = i
+	_zoom = ZOOMS[_zoom_i]
 
 
 func _process(delta: float) -> void:
@@ -146,7 +268,7 @@ func _draw_view() -> void:
 	var mid := _view.size / 2.0
 	var tree := get_tree()
 	_draw_route(pp, mid)
-	for t in Waypoints.targets(tree):
+	for t in (Waypoints.targets(tree) if Waypoints.nav_on else []):
 		_mark(Vector3(t["at"].x, pp.y, t["at"].y), pp, mid, t["kind"], 2, true)
 	for n in tree.get_nodes_in_group("enemies"):
 		if n.visible and n.has_method("is_alive") and n.is_alive():
@@ -176,6 +298,8 @@ func _draw_view() -> void:
 func _draw_route(pp: Vector3, mid: Vector2) -> void:
 	var scene := get_tree().current_scene
 	if scene == null or not scene.scene_file_path.ends_with("world.tscn"):
+		return
+	if not Waypoints.nav_on:
 		return
 	var pts := Waypoints.route(get_tree())
 	if pts.size() < 2:

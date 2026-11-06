@@ -11,8 +11,9 @@ const SCRIPTS := {"kvald": "res://scripts/combat/kvald.gd", "kobold": "res://scr
 	"golem": "res://scripts/combat/mine_golem.gd"}
 ## id лагеря → центр (x, z), место для навигации (общее с квестами), враги: [вид, смещение (x, z), свойства].
 const CAMPS := {
-	"pier_kvalds": {"at": Vector2(125.9, -45.6), "nav": "pier", "enemies": [
-		["kvald", Vector2(1.5, 0.0), {}], ["kvald", Vector2(-1.2, -1.6), {}], ["kvald", Vector2(-1.2, 1.6), {}]]},
+	# Квалды — на берегу в 30 м от Оды: при 13 м к жительнице и находкам её квестов нельзя было подойти без боя.
+	"pier_kvalds": {"at": Vector2(162.0, -31.0), "nav": "pier", "enemies": [
+		["kvald", Vector2(-3.2, 0.0), {}], ["kvald", Vector2(-1.2, -1.6), {}], ["kvald", Vector2(-1.2, 1.6), {}]]},
 	"gorge_kobolds": {"at": Vector2(-575.0, -252.0), "nav": "gorge", "enemies": [
 		["kobold", Vector2(-4.0, -2.0), {"pack_id": "gorge"}], ["kobold", Vector2(4.0, 1.0), {"pack_id": "gorge"}],
 		["kobold", Vector2(-2.0, 4.5), {"pack_id": "gorge"}], ["kobold", Vector2(3.0, -5.0), {"pack_id": "gorge"}]]},
@@ -20,7 +21,8 @@ const CAMPS := {
 		["kobold", Vector2(-3.5, 1.0), {"pack_id": "forest_road"}], ["kobold", Vector2(3.5, -1.5), {"pack_id": "forest_road"}],
 		["kobold", Vector2(0.5, 4.5), {"pack_id": "forest_road"}]]},
 	"mine_golem": {"at": Vector2(-555.0, -507.0), "nav": "mine", "enemies": [["golem", Vector2.ZERO, {}]]},
-	"adit_boss": {"at": Vector2(-575.0, -96.0), "nav": "adit", "enemies": [["golem", Vector2.ZERO, {"boss": true}]]},
+	# Мини-босс — в 26 м от находки квеста у штольни (радиус обнаружения 10): бой по желанию, а не по пути за квестом.
+	"adit_boss": {"at": Vector2(-559.0, -90.0), "nav": "adit", "enemies": [["golem", Vector2.ZERO, {"boss": true}]]},
 }
 
 @export var player_path: NodePath

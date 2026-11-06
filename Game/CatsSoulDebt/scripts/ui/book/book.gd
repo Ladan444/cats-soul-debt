@@ -122,10 +122,35 @@ func open_map() -> void:
 	if _blocked():
 		return
 	var world := get_tree().get_first_node_in_group("world_map")
+	if world == null:
+		world = _dungeon_map()
 	if world:
 		world.open_map()
 	else:
 		_location_map.open(map, get_node_or_null(player_path) as Node3D)
+
+
+## Большая карта подземелья (Рубеж) — та же полноэкранная карта, что в мире: сдвиг, масштаб, Рэй, метки, цель; картинка и
+## туман — те, что снимает миникарта. Создаётся при первом открытии; null — в этой сцене карты подземелья нет.
+func _dungeon_map() -> Node:
+	var existing := get_tree().current_scene.get_node_or_null("DungeonMap")
+	if existing:
+		return existing
+	var mm := get_tree().current_scene.find_child("Minimap", true, false)
+	var info: Dictionary = mm.map_info() if mm and mm.has_method("map_info") else {}
+	if info.is_empty():
+		return null
+	var m: CanvasLayer = load("res://scripts/ui/fast_travel_map.gd").new()
+	m.name = "DungeonMap"
+	m.map_texture = info["tex"]
+	m.fog_texture = info["fog"]
+	m.map_origin = info["origin"]
+	m.map_mpp = info["mpp"]
+	m.title_text = "Карта — Каменный Рубеж"
+	m.player_path = NodePath("../" + String(get_node_or_null(player_path).name)) if get_node_or_null(player_path) else NodePath()
+	get_tree().current_scene.add_child(m)
+	m.set("_camera", get_viewport().get_camera_3d())
+	return m
 
 
 ## Открыта ли карта места (для тестов и меню).
@@ -143,7 +168,8 @@ func _blocked() -> bool:
 
 
 func is_map_open() -> bool:
-	return _location_map.is_open()
+	var dm := get_tree().current_scene.get_node_or_null("DungeonMap") if get_tree().current_scene else null
+	return _location_map.is_open() or (dm != null and dm.call("is_open"))
 
 
 ## Открыть на последней закладке Рэя или журнала (кнопки HUD и паузы).

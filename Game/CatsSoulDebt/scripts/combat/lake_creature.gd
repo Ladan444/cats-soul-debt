@@ -27,7 +27,7 @@ func _init() -> void:
 	aggro_range = 8.0
 	reward_min = 3
 	reward_max = 5
-	hit_radius = 0.45
+	hit_radius = 0.55  # тело на листе ~1,3 м шириной
 	knockback_scale = 1.0
 	hit_color = Color("a070e0")
 	aggro_sound = "creature_growl"
@@ -91,7 +91,9 @@ func _think(delta: float) -> Vector3:
 		"crouch":
 			look_towards(to)
 			sprite.show_frame("leap", 0)
+			CombatFX.tint(sprite, Color("e0c0ff"), 0.15 + 0.3 * (0.5 + 0.5 * sin(state_time * 30.0)))
 			if state_time >= CROUCH:
+				CombatFX.tint(sprite, Color.WHITE, 0.0)
 				_leap_from = global_position
 				var jump := to
 				if jump.length() > MAX_LEAP:
@@ -108,11 +110,12 @@ func _think(delta: float) -> Vector3:
 				set_state("leap")
 		"leap":
 			var t := clampf(state_time / LEAP, 0.0, 1.0)
-			sprite.show_frame("leap", 1 if t < 0.5 else 2)
+			# Кадр 2 листа зеркален кадру 1 (хвост перескакивал на другую сторону) — весь полёт один кадр.
+			sprite.show_frame("leap", 1)
 			sprite.position.y = SPRITE_Y + sin(t * PI) * LEAP_HEIGHT
 			if not _struck and player in CombatFX.targets_in_arc(global_position, facing, 0.5, 180.0, "player"):
 				_struck = true
-				player.take_hit({"damage": attack_damage, "dir": facing, "knockback": 5.0})
+				player.take_hit({"damage": attack_damage, "dir": facing, "knockback": 5.0, "mist": true})
 			if t >= 1.0:
 				_land_sprite()
 				CombatFX.burst(global_position + Vector3(0, 0.1, 0), hit_color, Vector3.ZERO, 14, 2.5, 7.0, 0.08, 0.5)
@@ -120,7 +123,11 @@ func _think(delta: float) -> Vector3:
 			else:
 				return (_leap_to - _leap_from) / LEAP * Vector3(1, 0, 1)
 		"puddle":
-			sprite.show_frame("leap", 3)
+			# Лужа — плоский кадр; круглый кадр 3 ряда прыжка — на миг при приземлении.
+			if state_time < 0.12:
+				sprite.show_frame("leap", 3)
+			else:
+				sprite.show_frame("hurt", 1)
 			if state_time >= PUDDLE:
 				_cooldown = randf_range(1.2, 2.2)
 				_orbit_sign = -_orbit_sign
@@ -134,12 +141,18 @@ func _think(delta: float) -> Vector3:
 
 func _land_sprite() -> void:
 	sprite.position.y = SPRITE_Y
+	CombatFX.tint(sprite, Color.WHITE, 0.0)
 
 
 func _on_hurt(_info: Dictionary) -> void:
 	_land_sprite()
 	set_state("stagger")
 	sprite.play("hurt", true)
+
+
+func die() -> void:
+	_land_sprite()
+	super()
 
 
 func respawn() -> void:

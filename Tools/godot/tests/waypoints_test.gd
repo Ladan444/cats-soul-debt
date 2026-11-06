@@ -35,6 +35,30 @@ func _run() -> void:
 		ok(r.size() >= 3, "%s — маршрут по дорогам (есть промежуточные точки)" % pair[0])
 		ok(len >= straight and len < straight * 2.6 + 400.0, "%s — длина разумная" % pair[0])
 		ok(r[0] == pair[1] and r[r.size() - 1] == pair[2], "%s — начинается и кончается в заданных точках" % pair[0])
+	# Маршруты не идут сквозь дома деревни (контуры «buildings»): от таверны и от колодца до мест Главы 1.
+	var bds: Array = JSON.parse_string(FileAccess.get_file_as_string("res://data/world_routes.json"))["buildings"]
+	ok(bds.size() >= 10, "в данных есть контуры домов (%d)" % bds.size())
+	var well := Vector2(0, 0)
+	var goals := {"кузница": pois["smithy"]["at"], "дом Лиары": pois["liara"]["at"], "жилые дома": pois["homes"]["at"], "мельница": pois["mill"]["at"],
+		"Лесное святилище": pois["shrine"]["at"], "лагерь охотников": pois["hunters"]["at"], "причал": pois["pier"]["at"]}
+	for from in [tavern, well]:
+		for gname in goals:
+			var to := Vector2(goals[gname][0], goals[gname][1])
+			var rr: PackedVector2Array = W.find_route(from, to)
+			var bad := ""
+			for i in range(rr.size() - 1):
+				for b in bds:
+					var poly := PackedVector2Array()
+					for q in b["poly"]:
+						poly.append(Vector2(q[0], q[1]))
+					if Geometry2D.is_point_in_polygon(rr[i], poly) or Geometry2D.is_point_in_polygon(rr[i + 1], poly):
+						continue
+					if W._crosses(rr[i], rr[i + 1], poly):
+						bad = String(b["id"])
+			ok(bad == "", "маршрут %s → %s не идёт сквозь дом %s" % [("таверна" if from == tavern else "колодец"), gname, bad])
+	# Дорога ближе напрямик: первый участок от Рэя ведёт к настоящей дороге, а не к условному соединению.
+	var rs: PackedVector2Array = W.find_route(well, shrine)
+	ok(W.distance_to_road(rs[1]) < 1.0, "от колодца первый участок упирается в настоящую дорогу (%.1f м)" % W.distance_to_road(rs[1]))
 	# Мосты: путь на другой берег реки существует (граф связный между деревней и лагерем у главного моста).
 	var camp := Vector2(pois["hunters"]["at"][0], pois["hunters"]["at"][1])
 	var rc: PackedVector2Array = W.find_route(tavern, camp)

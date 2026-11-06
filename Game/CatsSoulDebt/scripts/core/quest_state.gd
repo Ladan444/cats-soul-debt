@@ -126,6 +126,27 @@ func notify(event: String) -> void:
 			complete_step(id)
 
 
+## Услышан слух: засчитывается, только пока какое-то задание собирает слухи (шаг «rumors:<сколько>»), по разу.
+func notify_rumor(rumor_id: String) -> bool:
+	var key := "rumor:" + rumor_id
+	if PlayerState.is_taken(key):
+		return false
+	var waiting := false
+	for id in active:
+		if not is_done(id) and String(steps(id)[active[id]]["event"]).begins_with("rumors:"):
+			waiting = true
+	if not waiting:
+		return false
+	PlayerState.take(key)
+	var heard := PlayerState.taken.filter(func(k): return k.begins_with("rumor:")).size()
+	for id in active.keys():
+		if not is_done(id):
+			var event := String(steps(id)[active[id]]["event"])
+			if event.begins_with("rumors:") and heard >= int(event.trim_prefix("rumors:")):
+				complete_step(id)
+	return true
+
+
 ## Вещь нужна, чтобы сдать взятый квест (finish → give): её нельзя выбросить или продать — иначе квест не сдать,
 ## а находка уже не вернётся (звёздный мох Марты: выбросил — квест и вторая лавка навсегда закрыты).
 func needs_item(item_id: String) -> bool:

@@ -9,6 +9,8 @@ const ROUTES_PATH := "res://data/world_routes.json"
 const REPATH_STEP := 3.0          ## на сколько метров должен сдвинуться Рэй (или цель), чтобы пересчитать маршрут
 const ARRIVE_M := 6.0             ## ближе этого — «пришли», метка задания гаснет
 const MERGE_M := 6.0             ## вершины дорог ближе этого — один перекрёсток
+const VIRTUAL_K := 3.0            ## условное соединение (нет ленты дороги) «стоит» в стольких раз дороже — путь держится дорог
+const SHORT_M := 30.0             ## ближе этого — напрямик, дорога не нужна
 const SNAP_M := 140.0             ## дальше от дороги — маршрут идёт напрямик (лес, горы)
 const GAP_M := 130.0              ## конец дороги соединяется с другой дорогой не дальше этого
 const JOIN_M := 150.0             ## отдельные куски дорожной сети ближе этого соединяются (концы дорог у деревни, развилки)
@@ -17,6 +19,17 @@ const JOIN_M := 150.0             ## отдельные куски дорожн�
 static var tracked_quest: String = ""
 ## Метка игрока на карте мира; null — нет.
 static var custom: Variant = null
+## Кнопка «Цель» на миникарте: показывать ли маршрут и ромб цели (карта мира показывает их всегда).
+static var nav_on: bool = true
+
+## AStar с повышенной ценой условных соединений.
+class _Net extends AStar2D:
+	var virt := {}
+
+	func _compute_cost(from_id: int, to_id: int) -> float:
+		var d := get_point_position(from_id).distance_to(get_point_position(to_id))
+		return d * (VIRTUAL_K if virt.has(minf(from_id, to_id) * 100000.0 + maxf(from_id, to_id)) else 1.0)
+
 
 static var _graph: Dictionary = {}
 static var _loaded := false
@@ -158,31 +171,98 @@ static func route(tree: SceneTree) -> PackedVector2Array:
 	return _route
 
 
-## Кратчайший путь по дорогам между двумя точками мира; ведущие к дороге и от неё участки — напрямик.
+## Кратчайший путь по дорогам между двумя точками мира. К дороге и от неё — кратчайшим участком до НАСТОЯЩЕЙ дороги
+## (не до условных соединений — они лежат поперёк полей); этот участок и прямой путь обходят дома деревни.
 static func find_route(from: Vector2, to: Vector2) -> PackedVector2Array:
 	var g := _data()
 	if g.is_empty() or not _loaded:
 		return PackedVector2Array([from, to])
 	var nodes: PackedVector2Array = _graph["nodes"]
 	var astar: AStar2D = _graph["astar"]
-	var a := _snap(from)
-	var b := _snap(to)
-	# Далеко от дорог — напрямик (никаких «обходов» ради пары метров экономии).
-	if a["dist"] > SNAP_M or b["dist"] > SNAP_M:
-		return PackedVector2Array([from, to])
+	var a := _snap(from, true)
+	var b := _snap(to, true)
+	# Совсем рядом или далеко от дорог — напрямик (лес, горы).
+	if from.distance_to(to) < SHORT_M or a["dist"] > SNAP_M or b["dist"] > SNAP_M:
+		return _simplify(_avoid(from, to))
 	var sa := _attach(astar, nodes, a)
 	var sb := _attach(astar, nodes, b)
 	var ids := astar.get_id_path(sa, sb)
-	var pts := PackedVector2Array([from])
-	for id in ids:
-		pts.append(astar.get_point_position(id))
-	pts.append(to)
 	_detach(astar, sa, nodes.size())
 	_detach(astar, sb, nodes.size())
-	# Прямой путь не длиннее дорожного ×1.15 — идём напрямик (короткий рывок через поле).
-	if from.distance_to(to) * 1.15 < _length(pts) and from.distance_to(to) < 90.0:
-		return PackedVector2Array([from, to])
+	var road := PackedVector2Array()
+	for id in ids:
+		road.append(a["at"] if id == sa else (b["at"] if id == sb else nodes[id]))
+	if road.size() < 2:
+		return _simplify(_avoid(from, to))
+	var pts := _avoid(from, road[0])
+	for i in range(1, road.size()):
+		pts.append(road[i])
+	for p in _avoid(road[road.size() - 1], to):
+		pts.append(p)
 	return _simplify(pts)
+
+
+## Прямой участок a→b в обход домов деревни (контуры — data/world_routes.json, «buildings»): если отрезок пересекает дом,
+## идёт через его угол (или пару углов), где короче. Конец внутри контура (цель у стены, Рэй на крыльце) этот дом не считает.
+static func _avoid(a: Vector2, b: Vector2, depth := 0) -> PackedVector2Array:
+	var direct := PackedVector2Array([a, b])
+	if depth > 4:
+		return direct
+	for bd in _data().get("buildings", []):
+		var poly := PackedVector2Array()
+		for q in bd["poly"]:
+			poly.append(_v(q))
+		if Geometry2D.is_point_in_polygon(a, poly) or Geometry2D.is_point_in_polygon(b, poly) or not _crosses(a, b, poly):
+			continue
+		var best := PackedVector2Array()
+		var best_len := INF
+		var n := poly.size()
+		for i in n:
+			for k in 2:   # один угол или два соседних
+				var via := PackedVector2Array([poly[i]])
+				if k == 1:
+					via.append(poly[(i + 1) % n])
+				var ok := true
+				var prev := a
+				for v in via:
+					if _crosses(prev, v, poly, true):
+						ok = false
+					prev = v
+				if not ok or _crosses(prev, b, poly, true):
+					continue
+				var l := a.distance_to(via[0]) + prev.distance_to(b)
+				if via.size() == 2:
+					l += via[0].distance_to(via[1])
+				if l < best_len:
+					best_len = l
+					best = via
+		if best.is_empty():
+			return direct
+		var out := PackedVector2Array()
+		var prev2 := a
+		for v in best:
+			for p in _avoid(prev2, v, depth + 1):
+				out.append(p)
+			prev2 = v
+		for p in _avoid(prev2, b, depth + 1):
+			out.append(p)
+		return out
+	return direct
+
+
+## Пересекает ли отрезок контур; inner — касание в углах не считается (идём вдоль стены к углу).
+static func _crosses(a: Vector2, b: Vector2, poly: PackedVector2Array, inner := false) -> bool:
+	var n := poly.size()
+	for i in n:
+		var p := poly[i]
+		var q := poly[(i + 1) % n]
+		var hit: Variant = Geometry2D.segment_intersects_segment(a, b, p, q)
+		if hit == null:
+			continue
+		if inner and (hit.distance_to(p) < 0.05 or hit.distance_to(q) < 0.05 or hit.distance_to(a) < 0.05 or hit.distance_to(b) < 0.05):
+			continue
+		return true
+	return false
 
 
 static func length_of(path: PackedVector2Array) -> float:
@@ -256,7 +336,7 @@ static func _data() -> Dictionary:
 
 ## Граф: вершины — точки дорог (близкие склеены в перекрёстки), рёбра — звенья дорог и мосты.
 static func _build(data: Dictionary) -> void:
-	var g := {"nodes": [], "segs": [], "real": [], "astar": AStar2D.new()}
+	var g := {"nodes": [], "segs": [], "real": [], "astar": _Net.new()}
 	for r in data["roads"]:
 		var prev := -1
 		for pt in r["points"]:
@@ -300,6 +380,8 @@ static func _link(g: Dictionary, a: int, b: int, virtual := false) -> void:
 	(g["segs"] as Array).append([a, b])
 	if not virtual:
 		(g["real"] as Array).append([a, b])
+	else:
+		(astar as _Net).virt[minf(a, b) * 100000.0 + maxf(a, b)] = true
 
 
 ## Дорожная сеть рисовалась кусками (дороги упираются в кольцо деревни, в мосты): соединяем ближайшие вершины
