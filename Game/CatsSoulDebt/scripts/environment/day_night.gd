@@ -54,7 +54,7 @@ func _process(_delta: float) -> void:
 		var sun_yaw := noon_yaw + lerpf(70.0, -70.0, arc)
 		var moon := Vector3(-48.0, noon_yaw + 150.0, 0.0)
 		_sun.rotation_degrees = moon.lerp(Vector3(sun_pitch, sun_yaw, 0.0), day)
-		_sun.shadow_opacity = lerpf(0.55, 1.0, day)
+		_sun.shadow_opacity = lerpf(0.55, 0.8, day)
 	if _atmo:
 		_atmo.set("sky_tint", (a[3] as Color).lerp(b[3], t))
 		_atmo.set("fog_tint", (a[4] as Color).lerp(b[4], t))

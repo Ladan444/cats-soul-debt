@@ -53,7 +53,7 @@ dof_blur_far_distance = 18.0
 dof_blur_far_transition = 8.0
 dof_blur_amount = 0.08
 
-[node name="Tavern" type="Node3D" unique_id=1974241464]
+[node name="Tavern" type="Node3D" unique_id=377042689]
 script = ExtResource("1_d8nvo")
 player_path = NodePath("Player")
 geometry_path = NodePath("Geometry")
@@ -64,44 +64,44 @@ metadata/minimap = {
 
 [node name="Geometry" type="Node3D" parent="." unique_id=7302086 instance=ExtResource("2_x2bhi")]
 
-[node name="Atmosphere" type="WorldEnvironment" parent="." unique_id=770151380]
+[node name="Atmosphere" type="WorldEnvironment" parent="." unique_id=1761734240]
 environment = SubResource("Environment_1dgky")
 script = ExtResource("3_p8t82")
 target_path = NodePath("../Player")
 presets = Array[ExtResource("4_wes3e")]([SubResource("Resource_jjt5t")])
 
-[node name="WindowLight" type="DirectionalLight3D" parent="." unique_id=1406332262]
+[node name="WindowLight" type="DirectionalLight3D" parent="." unique_id=1860527523]
 transform = Transform3D(-0.9396926, -0.21984634, 0.26200268, 0, 0.76604444, 0.6427876, -0.3420202, 0.60402274, -0.7198463, 0, 0, 0)
 light_color = Color(0.9, 0.93, 1, 1)
 light_energy = 0.35
 shadow_enabled = true
 
-[node name="Player" type="CharacterBody3D" parent="." unique_id=748741302 instance=ExtResource("5_vhjdm")]
+[node name="Player" type="CharacterBody3D" parent="." unique_id=1055650582 instance=ExtResource("5_vhjdm")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.2, -2.4)
 script = ExtResource("6_36jar")
 debug_skins = Array[Texture2D]([ExtResource("7_0xieq"), ExtResource("8_86ufg"), ExtResource("9_uvlb8")])
 debug_skin_names = PackedStringArray("Рэй", "Вельмор", "Лиара")
 
-[node name="Camera3D" type="Camera3D" parent="." unique_id=2032456667]
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1243817854]
 transform = Transform3D(1, 0, 0, 0, 0.7739573, 0.6332378, 0, -0.6332378, 0.7739573, 4.5, 9, 8.6)
 attributes = SubResource("CameraAttributesPractical_3jai0")
 fov = 30.0
 script = ExtResource("10_ahqxx")
 target_path = NodePath("../Player")
 
-[node name="Velmor" type="Node3D" parent="." unique_id=39336956]
+[node name="Velmor" type="Node3D" parent="." unique_id=1431332045]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -3.9)
 script = ExtResource("11_qopiv")
 sheet = ExtResource("8_86ufg")
 lines = PackedStringArray()
 
-[node name="Ambience" type="Node3D" parent="." unique_id=380278626]
+[node name="Ambience" type="Node3D" parent="." unique_id=1558985407]
 script = ExtResource("12_lx2pu")
 player_path = NodePath("../Player")
 geometry_path = NodePath("../Geometry")
 outdoor = false
 
-[node name="ExitToVillage" type="Area3D" parent="." unique_id=655709069]
+[node name="ExitToVillage" type="Area3D" parent="." unique_id=1555575405]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, 5.6)
 script = ExtResource("13_qc0wm")
 target_scene = "res://scenes/levels/world.tscn"
@@ -109,23 +109,23 @@ target_position = Vector3(0, 4.7513766, -22.775)
 size = Vector3(3, 3, 0.8)
 label = "↓ на площадь"
 
-[node name="HUD" type="CanvasLayer" parent="." unique_id=379716281]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=864848053]
 
-[node name="UIScaler" type="Control" parent="HUD" unique_id=1915665655]
+[node name="UIScaler" type="Control" parent="HUD" unique_id=456402080]
 layout_mode = 3
 anchors_preset = 0
 script = ExtResource("14_igie3")
 
-[node name="HUD" type="Control" parent="HUD/UIScaler" unique_id=88520923]
+[node name="HUD" type="Control" parent="HUD/UIScaler" unique_id=1000042092]
 anchors_preset = 0
 script = ExtResource("15_5py2i")
 atmosphere_path = NodePath("../../../Atmosphere")
 
-[node name="TouchControls" type="Control" parent="HUD/UIScaler" unique_id=10861409]
+[node name="TouchControls" type="Control" parent="HUD/UIScaler" unique_id=485096521]
 anchors_preset = 0
 script = ExtResource("16_s737i")
 
-[node name="DebugHint" type="Label" parent="HUD/UIScaler" unique_id=81383945]
+[node name="DebugHint" type="Label" parent="HUD/UIScaler" unique_id=1917793984]
 layout_mode = 0
 offset_left = 6.0
 offset_top = 44.0
@@ -137,18 +137,18 @@ script = ExtResource("17_v6n05")
 player_path = NodePath("../../../Player")
 atmosphere_path = NodePath("../../../Atmosphere")
 
-[node name="Book" type="CanvasLayer" parent="." unique_id=270684655]
+[node name="Book" type="CanvasLayer" parent="." unique_id=653202603]
 script = ExtResource("18_uwk8b")
 map = ExtResource("19_rle8l")
 player_path = NodePath("../Player")
 
-[node name="MapTracker" type="Node" parent="." unique_id=2141573150]
+[node name="MapTracker" type="Node" parent="." unique_id=1390447990]
 script = ExtResource("20_yp3mo")
 map = ExtResource("19_rle8l")
 player_path = NodePath("../Player")
 
-[node name="DialogueBox" type="CanvasLayer" parent="." unique_id=374364041]
+[node name="DialogueBox" type="CanvasLayer" parent="." unique_id=1002168497]
 script = ExtResource("21_thrq7")
 
-[node name="PauseMenu" type="CanvasLayer" parent="." unique_id=1634129878]
+[node name="PauseMenu" type="CanvasLayer" parent="." unique_id=1144713300]
 script = ExtResource("22_c2taf")

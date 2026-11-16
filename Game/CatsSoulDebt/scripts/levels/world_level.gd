@@ -27,6 +27,7 @@ const DRESS := {"Fortress": ["village_wall_stone", 6.4, 2.6], "FortressRoofs": [
 	"VillageThatch": ["village_grass_dry", 6.4, 2.2],
 	"Poi_stone": ["village_wall_stone", 6.4, 2.2], "Poi_rock": ["village_rock", 6.4, 2.2],
 	"Poi_wood": ["village_wood_beam", 3.2, 2.2], "Poi_oldwood": ["village_wood_beam", 3.2, 2.2],
+	"Poi_bark": ["village_bark", 3.2, 2.2],
 	"Poi_slate": ["village_rock", 6.4, 2.2],
 	"Detail_stone": ["village_wall_stone", 6.4, 2.2], "Detail_darkstone": ["village_wall_stone", 6.4, 2.2],
 	"Detail_wood": ["village_wood_beam", 3.2, 2.2], "Detail_oldwood": ["village_wood_beam", 3.2, 2.2],
@@ -56,6 +57,11 @@ const SOUL_FLAME := Color(0.82, 0.62, 1.0)
 var _player: Node3D
 var _means: Dictionary = {}
 var _mill_wheel: Node3D
+## Настроение по месту: густота леса под Рэем (канал A карты splat_b) плавно затемняет атмосферу.
+var _forest_map: Image
+var _atmosphere: AtmosphereBlender
+var _forest_shade := 0.0
+const FOREST_SHADE_SPEED := 0.6
 
 
 func _ready() -> void:
@@ -64,6 +70,11 @@ func _ready() -> void:
 	deep.name = "DeepWater"
 	deep.player = _player as CharacterBody3D
 	add_child(deep)
+	_atmosphere = get_node_or_null("Atmosphere") as AtmosphereBlender
+	if splat_b:
+		_forest_map = splat_b.get_image()
+		if _forest_map and _forest_map.is_compressed():
+			_forest_map.decompress()
 	var terrain_mat := _terrain_material()
 	for chunk in get_node(terrain_path).get_children():
 		if chunk is MeshInstance3D:
@@ -80,6 +91,8 @@ func _dress(node: MeshInstance3D) -> void:
 		var water := ShaderMaterial.new()
 		water.shader = WATER_SHADER
 		water.set_shader_parameter("flow", Vector2(0.0, 0.45) if n == "River" else Vector2(0.05, 0.02))
+		if n == "Poi_water":
+			water.set_shader_parameter("edge_width", 0.008)
 		node.material_override = water
 		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	elif n in ["Houses", "FortressHouses"]:
@@ -155,6 +168,20 @@ func _mean(tex_name: String) -> float:
 	return _means[tex_name]
 
 
+func _update_forest_shade(delta: float) -> void:
+	if _forest_map == null or _atmosphere == null:
+		return
+	var p := _player.global_position
+	var fx := int(round((p.x - splat_origin.x) / splat_step))
+	var fy := int(round((-p.z - splat_origin.y) / splat_step))
+	var target := 0.0
+	if fx >= 0 and fy >= 0 and fx < _forest_map.get_width() and fy < _forest_map.get_height():
+		var c := _forest_map.get_pixel(fx, fy)
+		target = maxf(smoothstep(0.25, 0.7, c.a), smoothstep(0.3, 0.8, c.g) * 0.4)
+	_forest_shade = move_toward(_forest_shade, target, FOREST_SHADE_SPEED * delta)
+	_atmosphere.zone_shade = _forest_shade
+
+
 func _terrain_material() -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = TERRAIN_SHADER
@@ -174,3 +201,4 @@ func _process(delta: float) -> void:
 		_mill_wheel.rotate_object_local(Vector3.RIGHT, MILL_WHEEL_SPEED * delta)
 	if _player:
 		RenderingServer.global_shader_parameter_set("player_world_position", _player.global_position + Vector3(0, 0.8, 0))
+		_update_forest_shade(delta)

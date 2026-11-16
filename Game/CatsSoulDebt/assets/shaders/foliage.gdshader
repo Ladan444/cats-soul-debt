@@ -15,6 +15,12 @@ uniform float radius = 3.0;
 uniform float soft_edge = 1.5;
 // Амплитуда ветра на метр высоты от основания модели.
 uniform float sway = 0.0;
+// Листва у самой камеры растворяется (ближе near_fade_from — нет совсем, дальше near_fade_to — целая; доли расстояния
+// камера—Рэй). Иначе кроны перед камерой закрывают полэкрана и всё, что на земле. 0 — выключено.
+uniform float near_fade_from = 0.0;
+uniform float near_fade_to = 0.0;
+// Плоскости травы и папоротника: нормаль тянется вверх, чтобы освещались как земля, а не темнели от низкого угла к солнцу.
+uniform float up_normal = 0.0;
 
 varying vec3 world_pos;
 varying float shade;
@@ -52,6 +58,9 @@ void fragment() {
 		float len = length(to_player);
 		vec3 dir = to_player / max(len, 0.001);
 		float along = dot(world_pos - cam, dir);
+		if (near_fade_to > 0.0 && smoothstep(near_fade_from * len, near_fade_to * len, along) < bayer4(floor(FRAGCOORD.xy / 2.0))) {
+			discard;
+		}
 		if (along > 0.0 && along < len - 0.6) {
 			float dist = length(world_pos - cam - dir * along);
 			float r = radius * clamp(along / len, 0.35, 1.0);
@@ -65,6 +74,9 @@ void fragment() {
 	}
 	if (!FRONT_FACING) {
 		NORMAL = -NORMAL;
+	}
+	if (up_normal > 0.0) {
+		NORMAL = normalize(mix(NORMAL, (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz, up_normal));
 	}
 	ALBEDO = tex.rgb * tint.rgb * shade;
 	ROUGHNESS = 0.95;

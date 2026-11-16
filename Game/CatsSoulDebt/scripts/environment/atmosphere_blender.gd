@@ -14,6 +14,13 @@ var fog_tint := Color.WHITE
 var ambient_tint := Color.WHITE
 var ambient_mult := 1.0
 var glow_mult := 1.0
+## Поправки места (ставит уровень, например лес в мире): 0 — без поправки, 1 — полностью.
+var zone_shade := 0.0
+const ZONE_AMBIENT := 0.82
+const ZONE_FOG := 0.012
+const ZONE_FOG_COLOR := Color(0.46, 0.56, 0.54)
+const ZONE_SATURATION := 0.9
+const ZONE_EXPOSURE := 0.9
 
 var _target: Node3D
 
@@ -52,6 +59,12 @@ func _apply(x: float) -> void:
 		saturation = lerpf(saturation, n.saturation, t)
 		exposure = lerpf(exposure, n.exposure, t)
 
+	if zone_shade > 0.0:
+		ambient_energy *= lerpf(1.0, ZONE_AMBIENT, zone_shade)
+		fog = fog.lerp(ZONE_FOG_COLOR, zone_shade)
+		fog_density = lerpf(fog_density, ZONE_FOG, zone_shade)
+		saturation *= lerpf(1.0, ZONE_SATURATION, zone_shade)
+		exposure *= lerpf(1.0, ZONE_EXPOSURE, zone_shade)
 	environment.background_color = bg * sky_tint
 	environment.ambient_light_color = ambient * ambient_tint
 	environment.ambient_light_energy = ambient_energy * ambient_mult

@@ -1,0 +1,331 @@
+{
+"models": {
+"Pr_Cairn": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.93,
+"crown": 0.6,
+"tris": 120,
+"solid": 0.45
+},
+"Pr_Waystone": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 1.37,
+"crown": 0.41,
+"tris": 44,
+"solid": 0.35
+},
+"Pr_Barrels": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.88,
+"crown": 1.2,
+"tris": 150,
+"solid": 0.72
+},
+"Pr_Crates": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 1.16,
+"crown": 1.34,
+"tris": 36,
+"solid": 0.72
+},
+"Pr_FenceOld": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 1.15,
+"crown": 1.8,
+"tris": 72
+},
+"Pr_Boat": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.82,
+"crown": 1.56,
+"tris": 60,
+"box": [
+2.76,
+0.7,
+1.05
+]
+},
+"Pr_FishPoles": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 1.77,
+"crown": 1.45,
+"tris": 60
+},
+"Dt_Fern_A": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 0.6,
+"crown": 1.38,
+"tris": 64
+},
+"Dt_Fern_B": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 0.81,
+"crown": 1.76,
+"tris": 72
+},
+"Dt_Fern_C": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 0.36,
+"crown": 0.89,
+"tris": 48
+},
+"Dt_Broad_A": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 0.66,
+"crown": 1.44,
+"tris": 72
+},
+"Dt_Broad_B": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 0.39,
+"crown": 0.84,
+"tris": 56
+},
+"Dt_Tuft_A": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 1.0,
+"crown": 0.59,
+"tris": 6
+},
+"Dt_Tuft_Tall": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 1.65,
+"crown": 0.75,
+"tris": 6
+},
+"Dt_Tuft_Dry": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 1.35,
+"crown": 0.71,
+"tris": 6
+},
+"Dt_Cattail": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 1.85,
+"crown": 0.66,
+"tris": 6
+},
+"Dt_Lily": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 1.5,
+"crown": 0.72,
+"tris": 4
+},
+"Dt_Spike": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 1.75,
+"crown": 0.64,
+"tris": 4
+},
+"Dt_Poppy": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 1.05,
+"crown": 0.73,
+"tris": 4
+},
+"Dt_Umbel": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 1.3,
+"crown": 0.81,
+"tris": 4
+},
+"Dt_Moss_A": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.06,
+"crown": 1.27,
+"tris": 18
+},
+"Dt_Moss_B": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.08,
+"crown": 1.56,
+"tris": 18
+},
+"Dt_Litter": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.04,
+"crown": 1.7,
+"tris": 2
+},
+"Dt_Twigs": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.05,
+"crown": 1.44,
+"tris": 2
+},
+"Dt_Shroom_Tan": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.2,
+"crown": 0.38,
+"tris": 90
+},
+"Dt_Shroom_Red": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.26,
+"crown": 0.37,
+"tris": 45
+},
+"Dt_Pebbles_A": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.21,
+"crown": 0.71,
+"tris": 140
+},
+"Dt_Pebbles_B": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.1,
+"crown": 0.72,
+"tris": 180
+},
+"Pr_RiverStones": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.39,
+"crown": 1.1,
+"tris": 80
+},
+"Pr_Boulder_A": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.78,
+"crown": 1.01,
+"tris": 80,
+"solid": 0.72
+},
+"Pr_Boulder_B": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.88,
+"crown": 1.37,
+"tris": 80,
+"solid": 0.98
+},
+"Pr_Stump_A": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.62,
+"crown": 0.68,
+"tris": 85,
+"solid": 0.34
+},
+"Pr_Stump_B": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.95,
+"crown": 0.96,
+"tris": 85,
+"solid": 0.48
+},
+"Pr_Log_A": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.68,
+"crown": 1.82,
+"tris": 107,
+"box": [
+3.42,
+0.46,
+0.54
+]
+},
+"Pr_Log_B": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 1.04,
+"crown": 2.63,
+"tris": 107,
+"box": [
+4.94,
+0.65,
+0.76
+]
+},
+"Pr_Roots": {
+"materials": [
+"ExtrasSolid"
+],
+"height": 0.55,
+"crown": 1.51,
+"tris": 144
+},
+"Pr_Ivy": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 2.8,
+"crown": 0.3,
+"tris": 24
+},
+"Pr_Vine": {
+"materials": [
+"ExtrasFoliage"
+],
+"height": 0.0,
+"crown": 1.06,
+"tris": 6
+}
+}
+}

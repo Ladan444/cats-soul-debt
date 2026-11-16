@@ -557,7 +557,7 @@ def shape(h, fbm):
         zs = [sample(h, x, y) for x, y in pts]
         zs = np.convolve(np.pad(zs, 3, mode="edge"), np.ones(7) / 7.0, mode="valid")
         d, z = line_field(pts, list(zs))
-        half = {"road": 2.6, "paved": 2.8, "path": 1.5, "lane": 1.1}[kind]
+        half = ROAD_HALF[kind]
         # Дорога чуть утоплена в землю (наезжена), тропа — едва.
         sink = {"road": 0.18, "paved": 0.12, "path": 0.08, "lane": 0.05}[kind]
         h = pad(h, np.maximum(d - half, 0.0), z - sink, 5.0, 0.9)
@@ -730,6 +730,16 @@ def splat(h, fbm, road_d, path_d, river, dl, forest):
     wob = noise_field(9.0, 3.1, lambda v: noise.noise(v)) * 1.6
     road = np.maximum(1.0 - smoothstep(0.8, 4.2, road_d + wob), 1.0 - smoothstep(0.3, 2.6, path_d + wob * 0.7))
     dry = smoothstep(0.15, 0.55, fbm) * 0.6
+    # Наполнение (EXTRAS_ZONE): в лесу подстилка пятнами (сухая трава в тени леса), на лугах — плеши голой земли.
+    if EXTRAS_ZONE:
+        zx0, zy0, zx1, zy1 = EXTRAS_ZONE
+        zone = smoothstep(zx0 - 8, zx0 + 8, GX) * (1 - smoothstep(zx1 - 8, zx1 + 8, GX)) * smoothstep(zy0 - 8, zy0 + 8, GY) * (1 - smoothstep(zy1 - 8, zy1 + 8, GY))
+    else:
+        zone = np.ones_like(h)
+    litter = noise_field(9.0, 17.3, lambda v: noise.noise(v))
+    bare = noise_field(11.0, 19.1, lambda v: noise.fractal(v, 1.0, 2.0, 3))
+    dry = np.maximum(dry, zone * smoothstep(0.3, 0.7, forest) * smoothstep(-0.25, 0.15, litter) * 0.9)
+    road = np.maximum(road, zone * (1.0 - smoothstep(0.1, 0.4, forest)) * smoothstep(0.3, 0.46, bare) * 0.9)
     dry = np.maximum(dry, smoothstep(0.6, 1.0, slope) * 0.8)
     cx, cy = P(415, 525)
     dry = np.maximum(dry, (np.hypot(GX - cx, GY - cy) < 55) * 0.8)
@@ -930,6 +940,7 @@ POINTS = []   # (имя, x, y, z)
 NATURE_COUNT = {}
 POND_Z = {}   # (px, py) пруда → высота глади
 ROAD_LINES = []   # (вид, точки) — сглаженные линии дорог, троп и улиц (shape() → road_ribbons())
+ROAD_HALF = {"road": 2.6, "paved": 2.8, "path": 1.5, "lane": 1.1}   # полуширина ленты по виду линии, м
 RIVER_CLIFF = [None]   # маска утёсов по берегам реки (water() → nature())
 
 
@@ -1878,7 +1889,9 @@ def poi_rubezh(B, h, rng):
     for s in (-1, 1):
         px_, py_ = bank[0] - buy * s * 4.0, bank[1] + bux * s * 4.0
         box(B["stone"], px_, py_, bz - 1.0, 6.0, 2.6, 11.0, brot)
-        brazier(B, px_ - bux * 4.5, py_ - buy * 4.5, bz)
+        # Жаровни — по бокам башни: прямо перед ней проходит тропа к шахте.
+        fx_, fy_ = bank[0] - bux * 1.5 - buy * s * 6.8, bank[1] - buy * 1.5 + bux * s * 6.8
+        brazier(B, fx_, fy_, sample(h, fx_, fy_))
     box(B["stone"], bank[0], bank[1], bz + 6.5, 6.0, 10.6, 4.5, brot)
     for s in (-1, 1):
         merlons(B["stone"], bank[0] - bux * 3 + (-buy) * s * 5.3, bank[1] - buy * 3 + bux * s * 5.3,
@@ -1922,7 +1935,7 @@ def poi_mine(B, h, cx, cy, rng):
     for t in np.arange(0, 16, 0.9):
         x, y = fr.at(t, t * 0.075)
         box(B["oldwood"], x, y, z, 0.3, 1.8, 0.12, fr.f + 0.075)
-    cx_, cy_ = fr.at(5.5, -2.8)
+    cx_, cy_ = fr.at(11.0, -3.6)                  # в стороне от конца тропы: она приходит к рельсам у fr.at(6, -3)
     box(B["rust"], cx_, cy_, z + 0.2, 2.2, 1.4, 1.1, fr.f + 0.4)
     for s in (-1, 1):
         for t in (-0.7, 0.7):
@@ -2157,6 +2170,8 @@ def poi_shrine(B, h, cx, cy, rng):
         if -0.9 < a - 3 * math.pi / 2 < 0.9:
             continue
         hh = rng.uniform(3, 5.5)
+        if road_clear(x, y) < 1.2:                   # тропа входит в круг: камень не на ней
+            continue
         zz = sample(h, x, y) - 0.4
         box(B["stone"], x, y, zz, 1.3, 0.9, hh, a + math.pi / 2)
         box(B["gold"], x - math.cos(a) * 0.47, y - math.sin(a) * 0.47, zz + hh * 0.5, 0.45, 0.05, 1.0,
@@ -2170,9 +2185,10 @@ def poi_shrine(B, h, cx, cy, rng):
         rock(B["rock"], px_ + math.cos(a) * 7.0, py_ + math.sin(a) * 7.0, z - 0.4, rng.uniform(0.7, 1.4), rng, 0.6)
     for k in range(3):
         rock(B["rock"], px_ + 9 + k * 1.6, py_ + 2 + k, z + k * 0.6, 1.4, rng, 0.8)
+    arch = 7.5                                       # полупролёт: опоры не на начале тропы к вырубке
     for s in (-1, 1):
-        box(B["stone"], px_ + s * 9.0, py_ - 7, z - 0.3, 1.2, 1.2, 6.0)
-    arc = [(px_ - math.cos(math.pi * k / 10) * 9.0, py_ - 7, z + 5.6 + math.sin(math.pi * k / 10) * 3.0)
+        box(B["stone"], px_ + s * arch, py_ - 7, z - 0.3, 1.2, 1.2, 6.0)
+    arc = [(px_ - math.cos(math.pi * k / 10) * arch, py_ - 7, z + 5.6 + math.sin(math.pi * k / 10) * 3.0)
            for k in range(11)]
     for a_, b_ in zip(arc, arc[1:]):
         beam(B["stone"], a_, b_, 0.65, 6)
@@ -2890,13 +2906,12 @@ def details(col, h, forest):
 
 def road_clear(x, y):
     """Расстояние от точки до края ближайшей дороги/тропы/улицы (м; < 0 — на ленте). ROAD_LINES — из shape()."""
-    half = {"road": 2.6, "paved": 2.8, "path": 1.5, "lane": 1.1}
     best = 1e9
     for kind, pts in ROAD_LINES:
         for a, b in zip(pts, pts[1:]):
             vx, vy = b[0] - a[0], b[1] - a[1]
             t = max(0.0, min(1.0, ((x - a[0]) * vx + (y - a[1]) * vy) / (vx * vx + vy * vy + 1e-9)))
-            best = min(best, math.hypot(x - a[0] - vx * t, y - a[1] - vy * t) - half[kind])
+            best = min(best, math.hypot(x - a[0] - vx * t, y - a[1] - vy * t) - ROAD_HALF[kind])
     return best
 
 
@@ -3226,6 +3241,815 @@ def nature(h, forest, river, dl, road_d, path_d, fbm):
     return placed
 
 
+# --- Дороги свободны ------------------------------------------------------------------------------
+
+ROAD_SOLID_MARGIN = 0.8   # зазор от края ленты до камня, ствола или предмета, м
+ROAD_CELL = 8.0           # ячейка сетки отрезков дорог, м
+ROAD_CLEARED = {}         # модель → сколько убрано с дорог за сборку
+
+
+def road_footprint(name, rec):
+    """Радиус занятого места на масштаб 1; 0 — низкое и мягкое: на ленте запрещён только центр."""
+    if name.startswith("Rock"):
+        return rec["crown"]
+    if "box" in rec:
+        return math.hypot(rec["box"][0], rec["box"][2]) / 2
+    if name in ("Pr_Roots", "Pr_Ivy", "Pr_Vine", "Pr_RiverStones"):
+        return 0.0
+    if name.startswith("Pr_"):
+        return rec["crown"]
+    if name.startswith("Bush"):
+        return rec["crown"] * 0.7
+    if name.startswith(("Dt_", "Grass", "Flower", "Petals", "LilyPad", "Reed", "Plant")):
+        return 0.0
+    return min(rec["trunk"], 0.35)                   # дерево: мера ствола у ивы и сосны завышена низкими ветками
+
+
+def clear_roads(placed, road_d, path_d):
+    """Последнее слово расстановки: на ленту дороги, тропы или улицы не заходит ничего, откуда бы оно ни взялось.
+    Сетка road_d грубее ленты (ошибка до 1,4 м), поэтому близкие к дорогам объекты проверяются точно, по отрезкам.
+    Случайные числа не тратит: лес от этого не перестраивается."""
+    import json
+    info = {}
+    base = os.path.join(PROJECT, "Game", "CatsSoulDebt", "assets", "models", "nature")
+    for fn in ("pack.json", "pack_extras.json"):
+        with open(os.path.join(base, fn), encoding="utf-8") as f:
+            info.update(json.load(f)["models"])
+    grid = {}
+    for kind, pts in ROAD_LINES:
+        for a, b in zip(pts, pts[1:]):
+            n = int(math.dist(a, b) // ROAD_CELL) + 1
+            for t in range(n + 1):
+                key = (int((a[0] + (b[0] - a[0]) * t / n) // ROAD_CELL), int((a[1] + (b[1] - a[1]) * t / n) // ROAD_CELL))
+                grid.setdefault(key, set()).add((ROAD_HALF[kind], tuple(a), tuple(b)))
+
+    def edge(x, y, reach):
+        best = 1e9
+        cx, cy = int(x // ROAD_CELL), int(y // ROAD_CELL)
+        for i_ in range(cx - reach, cx + reach + 1):
+            for j_ in range(cy - reach, cy + reach + 1):
+                for half, a, b in grid.get((i_, j_), ()):
+                    vx, vy = b[0] - a[0], b[1] - a[1]
+                    t = max(0.0, min(1.0, ((x - a[0]) * vx + (y - a[1]) * vy) / (vx * vx + vy * vy + 1e-9)))
+                    best = min(best, math.hypot(x - a[0] - vx * t, y - a[1] - vy * t) - half)
+        return best
+
+    for name in list(placed):
+        r0 = road_footprint(name, info.get(name, {"crown": 0.5, "trunk": 0.3}))
+        margin = ROAD_SOLID_MARGIN if r0 > 0.0 else 0.0
+        d = placed[name]
+        kept = []
+        for k in range(0, len(d), 5):
+            x, y, s = d[k], -d[k + 2], d[k + 4]
+            clear = r0 * s + margin
+            i = min(max(int(round((x - XS[0]) / STEP)), 0), len(XS) - 1)
+            j = min(max(int(round((y - YS[0]) / STEP)), 0), len(YS) - 1)
+            if road_d[j, i] > clear + 5.0 and path_d[j, i] > clear + 4.0:   # с запасом на грубость сетки и ширину ленты
+                kept.extend(d[k:k + 5])
+            elif edge(x, y, int((clear + 3.0) // ROAD_CELL) + 1) >= clear:
+                kept.extend(d[k:k + 5])
+            else:
+                ROAD_CLEARED[name] = ROAD_CLEARED.get(name, 0) + 1
+        if kept:
+            placed[name] = kept
+        else:
+            del placed[name]
+
+
+def write_roads_json():
+    """Линии дорог для проверки в игре (Tools/godot/tests/world_roads_test.gd)."""
+    import json
+    path = os.path.join(PROJECT, "Game", "CatsSoulDebt", "assets", "levels", "world_roads.json")
+    data = [{"kind": k, "half": ROAD_HALF[k], "pts": [[round(float(x), 2), round(float(y), 2)] for x, y in pts]}
+            for k, pts in ROAD_LINES]
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, separators=(",", ":"))
+
+
+# --- Наполнение: подлесок и мелочи (Tools/blender/nature_extras.py) ------------------------------------
+
+# Граница наполнения: None — весь мир (образец у Главного моста автор одобрил 2026-11-06).
+EXTRAS_ZONE = None
+
+# Особые места: без квестов, находки для глаза (решение автора: 10–15). x, y — центр (Blender), r — поляна без деревьев.
+VIGNETTES = {
+    "spring": {"kind": "spring", "x": 212.0, "y": 216.0, "r": 10.0, "pool": 4.2, "depth": 0.75},
+    "falls": {"kind": "spring", "x": -560.0, "y": 165.0, "r": 9.0, "pool": 3.4, "depth": 0.7},
+    "giant": {"kind": "giant", "x": 258.0, "y": 250.0, "r": 13.0, "pool": 6.5, "depth": 0.7},
+    "ruin": {"kind": "ruin", "x": 58.0, "y": 178.0, "r": 11.0},
+    "stones": {"kind": "stones", "x": -135.0, "y": 235.0, "r": 12.0},
+    "outcrop_w": {"kind": "outcrop", "x": -240.0, "y": 45.0, "r": 13.0},
+    "outcrop_s": {"kind": "outcrop", "x": -165.0, "y": -62.0, "r": 11.0},
+    "marsh": {"kind": "marsh", "x": 283.0, "y": -58.0, "r": 15.0, "depth": 0.5,
+              "pools": [(0.0, 0.0, 5.0), (-6.5, 3.5, 3.0), (6.0, -3.0, 3.4), (1.5, 7.0, 2.6)]},
+    "arch": {"kind": "arch", "x": -175.0, "y": 335.0, "r": 9.0},
+    "oak": {"kind": "oak", "x": 120.0, "y": 520.0, "r": 13.0},
+    "camp": {"kind": "camp", "x": 45.0, "y": -140.0, "r": 8.0},
+    "piers": {"kind": "piers", "x": 24.0, "y": 333.0, "r": 7.0},
+}
+
+
+def vignette_terrain(h, river):
+    """Площадки особых мест: ровно, под водой — чаши. Запоминает высоту и гладь. Русло реки не засыпается."""
+    d_r, _, half_r = river
+    h0 = h.copy()
+    for key, v in VIGNETTES.items():
+        if v["kind"] == "piers":                             # обломки моста: привязка к реке, опора — на западном берегу
+            (qx, qy), flow, width, surf = river_at(v["x"], v["y"])
+            nx_, ny_ = math.cos(flow + math.pi / 2), math.sin(flow + math.pi / 2)
+            if nx_ > 0.0:
+                nx_, ny_ = -nx_, -ny_
+            v.update(x=qx + nx_ * (width / 2 + 7.0), y=qy + ny_ * (width / 2 + 7.0), q=(qx, qy), n=(nx_, ny_), width=width, water=surf - 0.5)
+        d = np.hypot(GX - v["x"], GY - v["y"])
+        z = sample(h, v["x"], v["y"])
+        v["z"] = z
+        h = pad(h, np.maximum(d - v["r"] * 0.7, 0.0), z, 7.0)
+        pools = [(0.0, 0.0, v["pool"])] if "pool" in v else v.get("pools", [])
+        if pools:                                            # берег не ниже воды, иначе край меша воды виден прямой линией
+            h = np.where(d < v["r"], np.maximum(h, z - 0.02), h)
+        if pools:
+            v["surface"] = z - 0.18
+        for ox, oy, pr in pools:
+            dp = np.hypot(GX - v["x"] - ox, GY - v["y"] - oy)
+            bowl = z - 0.1 - v["depth"] * np.clip(1.0 - (dp / pr) ** 2, 0.0, 1.0)
+            h = np.where(dp < pr + 0.5, np.minimum(h, bowl), h)
+    w = smoothstep(half_r - 0.5, half_r + 3.5, d_r)
+    return h0 * (1.0 - w) + h * w
+
+
+def gameplay_points():
+    """Где стоят жители и лагеря врагов (Blender x, y): рядом не ставить предметы с коллизией. Данные — из скриптов игры."""
+    import re
+    out = []
+    for rel in (("scripts", "levels", "world_camps.gd"), ("scripts", "data", "village_quests.gd")):
+        text = open(os.path.join(PROJECT, "Game", "CatsSoulDebt", *rel), encoding="utf-8").read()
+        for m in re.finditer(r'"at":\s*Vector2\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)', text):
+            out.append((float(m.group(1)), -float(m.group(2))))
+    return out
+
+
+def extras(placed, h, forest, river, dl, road_d, path_d, fbm):
+    """Подлесок и мелочи по местам: лес, опушка, луг, берег, озеро, обочина, вырубка, кладбище, горы, деревня; плющ и корни
+    у деревьев. Свой генератор случайных чисел: прежняя расстановка леса не меняется. Клетка 1,5 м — не больше одного
+    предмета; вдали от дорог реже. Показывает участками вокруг Рэя scripts/levels/nature_scatter.gd."""
+    rng = random.Random(77)
+    x0, y0, x1, y1 = EXTRAS_ZONE or (XS[0] + 4, YS[0] + 4, XS[-1] - 4, YS[-1] - 4)
+    # Деревья и камни не стоят в особых местах.
+    for name, flat_ in list(placed.items()):
+        keep = []
+        for k in range(0, len(flat_), 5):
+            x, y = flat_[k], -flat_[k + 2]
+            if not any(math.hypot(x - v["x"], y - v["y"]) < v["r"] for v in VIGNETTES.values()):
+                keep.extend(flat_[k:k + 5])
+        placed[name] = keep
+    gy_, gx_ = np.gradient(h, STEP)
+    slope = np.sqrt(gx_ * gx_ + gy_ * gy_)
+    d_river, surf, half = river
+    no_go = poly_mask(PL(W["FORTRESS"]["walls"])) | (np.hypot(GX, GY) < PLAZA_R + 3.0)
+    for poly in W["TERRACES"] + W["FIELDS"] + W["GARDENS"]:
+        no_go |= poly_mask(PL(poly))
+    for it in village_plan():
+        r = 10.0 if it["kind"] == "watermill" else 3.0
+        no_go |= rect_dist(it["x"], it["y"], it["w"], it["d"], it["rot"]) < r
+    for x, y, r in W["PONDS"]:
+        cx, cy = P(x, y)
+        no_go |= np.hypot(GX - cx, GY - cy) < r + 1.0
+    for v in VIGNETTES.values():
+        no_go |= np.hypot(GX - v["x"], GY - v["y"]) < v["r"] * 0.85
+    keep_clear = [(P(p[3], p[4]), 9.0) for p in W["POIS"]] + [(P(x, y), 9.0) for x, y in W["LANTERNS"]] + [(q, 6.0) for q in gameplay_points()]
+    keep_grid = {}
+    for (kx, ky), kr in keep_clear:
+        keep_grid.setdefault((int(kx // 16), int(ky // 16)), []).append((kx, ky, kr))
+    fern_n = noise_field(18.0, 11.3, lambda v: noise.noise(v))
+    tall_n = noise_field(12.0, 12.9, lambda v: noise.noise(v))
+    drift_n = noise_field(16.0, 14.1, lambda v: noise.noise(v))
+    spec_n = noise_field(70.0, 15.7, lambda v: noise.noise(v))
+    trees_near = {}
+    for name, flat_ in placed.items():
+        if "Tree" in name:
+            for k in range(0, len(flat_), 5):
+                trees_near.setdefault((int(flat_[k] // 4), int(-flat_[k + 2] // 4)), []).append((flat_[k], -flat_[k + 2]))
+    lx, ly = P(*next((p[3], p[4]) for p in W["POIS"] if p[0] == "logging"))
+    cemx, cemy = P(*next((p[3], p[4]) for p in W["POIS"] if p[0] == "cemetery"))
+
+    def ss(a, b, x):
+        t = min(1.0, max(0.0, (x - a) / (b - a)))
+        return t * t * (3.0 - 2.0 * t)
+
+    def tree_close(x, y, r):
+        cx, cy = int(x // 4), int(y // 4)
+        for a in range(cx - 1, cx + 2):
+            for b in range(cy - 1, cy + 2):
+                for tx, ty in trees_near.get((a, b), ()):
+                    if math.hypot(tx - x, ty - y) < r:
+                        return True
+        return False
+
+    def cell(x, y):
+        return (min(max(int(round((y - YS[0]) / STEP)), 0), len(YS) - 1), min(max(int(round((x - XS[0]) / STEP)), 0), len(XS) - 1))
+
+    def put(name, x, y, s_lo, s_hi, sink, z=None, rot=None):
+        zz = (height_at(h, x, y) - sink) if z is None else z
+        placed.setdefault(name, []).extend([round(x, 2), round(zz, 2), round(-y, 2),
+                                            round(rng.uniform(0, math.tau) if rot is None else rot, 2), round(rng.uniform(s_lo, s_hi), 2)])
+
+    def prop_ok(x, y, rr):
+        """Предмет с коллизией: не на дереве, не на дороге и не у места интереса, жителя или лагеря."""
+        j, i = cell(x, y)
+        if road_d[j, i] < rr + 3.5 or path_d[j, i] < rr + 2.2 or no_go[j, i] or tree_close(x, y, rr + 0.8):
+            return False
+        cx, cy = int(x // 16), int(y // 16)
+        for a in range(cx - 1, cx + 2):
+            for b in range(cy - 1, cy + 2):
+                for kx, ky, kr in keep_grid.get((a, b), ()):
+                    if math.hypot(x - kx, y - ky) < kr:
+                        return False
+        return True
+
+    #: вид → (модель, масштаб от, масштаб до, заглубление)
+    K = {"fern_a": ("Dt_Fern_A", 0.8, 1.25, 0.02), "fern_b": ("Dt_Fern_B", 0.85, 1.35, 0.02), "fern_c": ("Dt_Fern_C", 0.8, 1.2, 0.02),
+         "broad_a": ("Dt_Broad_A", 0.8, 1.2, 0.02), "broad_b": ("Dt_Broad_B", 0.8, 1.3, 0.02),
+         "tuft": ("Dt_Tuft_A", 0.8, 1.25, 0.03), "tall": ("Dt_Tuft_Tall", 0.8, 1.2, 0.03), "dry": ("Dt_Tuft_Dry", 0.8, 1.2, 0.03),
+         "cattail": ("Dt_Cattail", 0.85, 1.15, 0.08), "lily": ("Dt_Lily", 0.85, 1.2, 0.02), "spike": ("Dt_Spike", 0.85, 1.2, 0.02),
+         "poppy": ("Dt_Poppy", 0.85, 1.2, 0.02), "umbel": ("Dt_Umbel", 0.85, 1.2, 0.02),
+         "moss_a": ("Dt_Moss_A", 0.7, 1.3, 0.02), "moss_b": ("Dt_Moss_B", 0.7, 1.3, 0.02), "litter": ("Dt_Litter", 0.7, 1.2, 0.0),
+         "twigs": ("Dt_Twigs", 0.7, 1.1, 0.0), "shroom": ("Dt_Shroom_Tan", 0.9, 1.4, 0.01), "shroom_r": ("Dt_Shroom_Red", 0.9, 1.3, 0.01),
+         "peb_a": ("Dt_Pebbles_A", 0.8, 1.4, 0.03), "peb_b": ("Dt_Pebbles_B", 0.8, 1.4, 0.03)}
+    FLAT = {"moss_a", "moss_b", "litter", "twigs"}
+    MADE = {"waystone": ("Pr_Waystone", 0.6), "cairn": ("Pr_Cairn", 0.7), "barrels": ("Pr_Barrels", 1.1), "crates": ("Pr_Crates", 1.1),
+            "fence": ("Pr_FenceOld", 1.8), "boat": ("Pr_Boat", 1.7), "poles": ("Pr_FishPoles", 1.5)}
+
+    def roll(table):
+        r, acc = rng.random(), 0.0
+        for kind, p in table:
+            acc += p
+            if r < acc:
+                return kind
+        return None
+
+    for y in np.arange(y0, y1, 1.5):
+        for x in np.arange(x0, x1, 1.5):
+            px_, py_ = float(x) + rng.uniform(-0.7, 0.7), float(y) + rng.uniform(-0.7, 0.7)
+            j, i = cell(px_, py_)
+            if no_go[j, i] or slope[j, i] > 0.95:
+                continue
+            dlv = float(dl[j, i])
+            if dlv > -1.0:
+                continue
+            zh = float(h[j, i])
+            if zh > 58.0:
+                continue
+            rd, pd, f = float(road_d[j, i]), float(path_d[j, i]), float(forest[j, i])
+            if rd < 3.3 or pd < 1.9:
+                continue
+            dr = float(d_river[j, i] - half[j, i])
+            if dr < -2.5:
+                continue
+            if rd > 80.0 and pd > 80.0 and rng.random() < 0.45:   # глубь леса и дальние луга: туда заходят редко
+                continue
+            from_center = math.hypot(px_, py_)
+            if from_center < 72.0:                                # деревня: мелочи у заборов и домов, без предметов
+                table = [("tuft", 0.07), ("umbel", 0.02), ("poppy", 0.015), ("lily", 0.006), ("peb_a", 0.012)]
+            elif dr < 7.0:                                        # берег и мелководье
+                table = [("cattail", 0.24 if dr < 2.5 else 0.02), ("river", 0.02 if dr < 3.5 else 0.0), ("peb_b", 0.07 if dr < 5 else 0.01),
+                         ("tall", 0.1 if dr > 0 else 0.0), ("broad_a", 0.02 if dr > 1 else 0.0), ("lily", 0.015 if dr > 1 else 0.0),
+                         ("fern_c", 0.03 if dr > 2 else 0.0), ("moss_a", 0.012 if dr > 0.5 else 0.0),
+                         ("boat", 0.0009 if 0.6 < dr < 4 else 0.0), ("poles", 0.0007 if 0.6 < dr < 4 else 0.0)]
+            elif dlv > -9.0:                                      # берег озера
+                table = [("cattail", 0.12 if dlv > -4.0 else 0.0), ("peb_b", 0.05), ("tall", 0.1), ("river", 0.012), ("moss_a", 0.01),
+                         ("boat", 0.0007), ("poles", 0.0006)]
+            elif zh > 28.0:                                       # горы и предгорья
+                table = [("peb_a", 0.02), ("dry", 0.03), ("moss_a", 0.006), ("boulder", 0.003), ("cairn", 0.0003)]
+            elif rd < 6.5 or pd < 4.0:                            # обочина
+                table = [("tuft", 0.1), ("peb_a", 0.03), ("umbel", 0.03), ("poppy", 0.02), ("twigs", 0.004), ("dry", 0.02),
+                         ("waystone", 0.0006), ("cairn", 0.0006), ("barrels", 0.0003), ("crates", 0.0003), ("fence", 0.0006)]
+            elif math.hypot(px_ - lx, py_ - ly) < 60.0:           # заброшенная вырубка
+                table = [("stump", 0.022), ("twigs", 0.06), ("dry", 0.06), ("litter", 0.03), ("log", 0.004), ("tuft", 0.04), ("umbel", 0.012)]
+            elif math.hypot(px_ - cemx, py_ - cemy) < 55.0:       # старое кладбище: сухо и серо, без цветов
+                table = [("dry", 0.06), ("moss_a", 0.012), ("peb_b", 0.012), ("twigs", 0.015), ("umbel", 0.004)]
+            elif f >= 0.45:                                       # лес
+                fern = 0.03 + 0.42 * ss(-0.1, 0.35, float(fern_n[j, i]))
+                table = [("fern_b", fern * 0.45), ("fern_a", fern * 0.35), ("fern_c", fern * 0.2), ("moss_b", 0.05), ("litter", 0.07),
+                         ("twigs", 0.02), ("broad_b", 0.03), ("shroom", 0.014), ("shroom_r", 0.004), ("peb_a", 0.008), ("tuft", 0.02),
+                         ("lily", 0.004), ("spike", 0.004), ("stump", 0.0034), ("log", 0.003), ("boulder", 0.0045),
+                         ("cairn", 0.0003), ("fence", 0.00025), ("barrels", 0.0001)]
+            elif f >= 0.12:                                       # опушка
+                table = [("fern_a", 0.05), ("fern_c", 0.03), ("tall", 0.07), ("tuft", 0.06), ("umbel", 0.025), ("broad_b", 0.02),
+                         ("peb_a", 0.008), ("moss_a", 0.01), ("stump", 0.001), ("boulder", 0.002), ("log", 0.0008)]
+            else:                                                 # луг: высокая трава и цветы пятнами
+                tall = 0.01 + 0.22 * ss(0.05, 0.4, float(tall_n[j, i]))
+                dryness = ss(0.1, 0.45, float(fbm[j, i]))
+                table = [("dry", tall * dryness), ("tall", tall * (1 - dryness) * 0.7), ("tuft", tall * (1 - dryness) * 0.3)]
+                if drift_n[j, i] > 0.12:
+                    sp = float(spec_n[j, i])
+                    table.append(("umbel" if sp < -0.15 else "poppy" if sp < 0.05 else "spike" if sp < 0.25 else "lily", 0.6))
+                table += [("peb_a", 0.004), ("moss_a", 0.003), ("boulder", 0.0011), ("cairn", 0.00025), ("fence", 0.00025), ("waystone", 0.00015)]
+            kind = roll(table)
+            if kind is None:
+                continue
+            if kind in FLAT and slope[j, i] > 0.45:
+                continue
+            if kind == "river":
+                put("Pr_RiverStones", px_, py_, 0.7, 1.4, 0.08)
+            elif kind == "boulder":
+                if prop_ok(px_, py_, 1.2):
+                    put(rng.choice(("Pr_Boulder_A", "Pr_Boulder_B")), px_, py_, 0.8, 1.5, 0.12)
+            elif kind in MADE:
+                model, rr = MADE[kind]
+                if prop_ok(px_, py_, rr):
+                    put(model, px_, py_, 0.9, 1.1, 0.03)
+            elif kind == "stump":
+                if prop_ok(px_, py_, 0.7):
+                    put(rng.choice(("Pr_Stump_A", "Pr_Stump_B")), px_, py_, 0.9, 1.3, 0.04)
+            elif kind == "log":
+                a = rng.uniform(0, math.tau)
+                ln = 3.2
+                if all(prop_ok(px_ + math.cos(a) * t, py_ - math.sin(a) * t, 0.5) for t in (-ln, 0.0, ln)):
+                    put(rng.choice(("Pr_Log_A", "Pr_Log_B")), px_, py_, 0.9, 1.15, 0.05, rot=a)
+            else:
+                name, lo, hi, sink = K[kind]
+                put(name, px_, py_, lo, hi, sink)
+    # Плющ и корни у деревьев: по масштабу дерева (хвойные — без плюща, у них всё в иголках).
+    for name in [n for n in placed if n.startswith(("NormalTree", "MapleTree", "BirchTree", "WillowTree", "DeadTree"))]:
+        flat_ = placed[name]
+        for k in range(0, len(flat_), 5):
+            tx, tz, ty, s = flat_[k], flat_[k + 1], -flat_[k + 2], flat_[k + 4]
+            if not (x0 <= tx <= x1 and y0 <= ty <= y1):
+                continue
+            if rng.random() < 0.28:
+                put("Pr_Ivy", tx, ty, s * 0.85, s * 0.85, 0.0, z=tz + 0.1)
+            if rng.random() < 0.35:
+                put("Pr_Roots", tx, ty, s * 0.85, s * 1.05, 0.05, z=tz + 0.08)
+    # Деревня: бочки и ящики за домами — с другой стороны от поленницы.
+    for it in village_plan():
+        if it["kind"] == "building" and rng.random() < 0.6:
+            sx, sy = it["side"]
+            wx, wy = it["x"] - sx * (it["w"] / 2 + 1.1) - sy * 2.0, it["y"] - sy * (it["d"] / 2 + 1.1) - sx * 2.0
+            wx, wy = rotate_about(wx, wy, it["x"], it["y"], it["rot"])
+            j, i = cell(wx, wy)
+            if path_d[j, i] > 2.0 and road_d[j, i] > 3.5:
+                put(rng.choice(("Pr_Barrels", "Pr_Crates")), wx, wy, 0.85, 1.0, 0.02)
+    # У старых руин: мох, обломки, трава вокруг.
+    for rx, ry in [P(*t) for t in W["RUIN_TOWERS"]] + [P(t[0], t[1]) for t in W["RUIN_WALLS"]]:
+        for _ in range(18):
+            a, rr = rng.uniform(0, math.tau), rng.uniform(3.5, 10.0)
+            ax_, ay_ = rx + math.cos(a) * rr, ry + math.sin(a) * rr
+            j, i = cell(ax_, ay_)
+            if road_d[j, i] > 3.3 and path_d[j, i] > 1.9 and not no_go[j, i]:
+                name, lo, hi, sink = K[rng.choice(("moss_a", "moss_b", "peb_a", "peb_a", "tall", "tuft", "fern_c", "umbel"))]
+                put(name, ax_, ay_, lo, hi, sink)
+    vignette_plants(placed, h)
+
+
+def vignette_lump(bm, rng, cx, cy, cz, r, squash=0.75, jitter=0.2, subdiv=1):
+    """Неровный камень (меш в группе места)."""
+    g = bmesh.ops.create_icosphere(bm, subdivisions=subdiv, radius=1.0)
+    for v in g["verts"]:
+        k = 1.0 + rng.uniform(-jitter, jitter)
+        v.co = Vector((cx + v.co.x * r * k, cy + v.co.y * r * k, cz + v.co.z * r * squash * k))
+
+
+def vignette_tube(bm, pts, radii, sides=7, rng=None, wob=0.0):
+    """Трубка по точкам (ствол, ветка, корень) с неровными кольцами."""
+    rings = []
+    for k, (p, r) in enumerate(zip(pts, radii)):
+        a = Vector(pts[max(0, k - 1)])
+        b = Vector(pts[min(len(pts) - 1, k + 1)])
+        d = (b - a).normalized()
+        u = d.cross(Vector((0, 0, 1)))
+        if u.length < 0.01:
+            u = Vector((1, 0, 0))
+        u.normalize()
+        w = d.cross(u)
+        ring = []
+        for i in range(sides):
+            t = i / sides * math.tau
+            rr = r * (1.0 + (rng.uniform(-wob, wob) if rng else 0.0))
+            ring.append(bm.verts.new(Vector(p) + (u * math.cos(t) + w * math.sin(t)) * rr))
+        rings.append(ring)
+    for r0, r1 in zip(rings, rings[1:]):
+        for i in range(sides):
+            j = (i + 1) % sides
+            bm.faces.new([r0[i], r0[j], r1[j], r1[i]])
+    bm.faces.new(rings[0][::-1])
+    bm.faces.new(rings[-1])
+    return rings
+
+
+def vignette_water(bm, cx, cy, z, r, seg=18):
+    vs = [bm.verts.new((cx + math.cos(i / seg * math.tau) * r, cy + math.sin(i / seg * math.tau) * r, z)) for i in range(seg)]
+    bm.faces.new(vs)
+
+
+def vignette_fall(bm, pts, width):
+    """Струя воды: лента по точкам (x, y, z)."""
+    rows = []
+    for k, p in enumerate(pts):
+        a, b = Vector(pts[max(0, k - 1)]), Vector(pts[min(len(pts) - 1, k + 1)])
+        d = b - a
+        side = Vector((-d.y, d.x, 0.0))
+        if side.length < 0.001:
+            side = Vector((1, 0, 0))
+        side.normalize()
+        rows.append((bm.verts.new(Vector(p) - side * width / 2), bm.verts.new(Vector(p) + side * width / 2)))
+    for (a0, b0), (a1, b1) in zip(rows, rows[1:]):
+        f = bm.faces.new([a0, b0, b1, a1])
+        f.normal_update()
+        if f.normal.y > 0.0:          # шейдер воды рисует только лицевую сторону: лицом на юг, к камере
+            f.normal_flip()
+
+
+VIGNETTE_COLORS = {"stone": (0.56, 0.54, 0.49), "rock": (0.50, 0.48, 0.44), "bark": (0.42, 0.33, 0.25), "moss": (0.30, 0.42, 0.18),
+                   "water": (0.20, 0.38, 0.46), "wood": (0.48, 0.35, 0.22), "cloth": (0.60, 0.55, 0.42), "dark": (0.20, 0.19, 0.18)}
+
+
+def vignettes(col, h):
+    """Особые места (меши и вода; растения вокруг — vignette_plants, в extras они идут отдельно)."""
+    rng = random.Random(91)
+    # Родник: кольцо камней, чаша с водой, с севера груда камней и струя (ref: диорама с прудом).
+    for key in ("spring", "falls"):
+        v = VIGNETTES[key]
+        k_ = v["pool"] / 4.2
+        g = EditGroup(col, "detail:vignette_" + key, (v["x"], v["y"]), h)
+        x, y, z = v["x"], v["y"], v["z"]
+        r = v["pool"]
+        for k in range(17):
+            a = k / 17 * math.tau + rng.uniform(-0.1, 0.1)
+            if 4.45 < a < 4.95:                                  # с юга (от камеры) просвет — вид на воду
+                continue
+            rr = rng.uniform(0.5, 1.05) * max(k_, 0.85)
+            cx_, cy_ = x + math.cos(a) * (r + 0.2), y + math.sin(a) * (r + 0.2)
+            vignette_lump(g.bm("rock"), rng, cx_, cy_, z + rr * 0.15, rr, 0.75, 0.14, 2)
+            if rng.random() < 0.55:
+                vignette_lump(g.bm("moss"), rng, cx_, cy_, z + rr * 0.68, rr * 0.62, 0.3, 0.12)
+        for ox, oy, oz, rr in ((0.0, 5.4, 0.4, 1.9), (-1.9, 5.0, 0.2, 1.5), (1.9, 5.1, 0.25, 1.5), (-0.9, 5.7, 1.9, 1.25), (1.0, 5.7, 1.8, 1.2), (0.0, 6.3, 2.6, 1.1)):
+            vignette_lump(g.bm("rock"), rng, x + ox * k_, y + oy * k_, z + oz * k_, rr * k_, 0.85, 0.16, 2)
+        for ox, oy, oz, rr in ((-0.9, 5.2, 2.85, 0.8), (1.2, 5.3, 2.65, 0.7), (0.2, 6.0, 3.6, 0.8)):
+            vignette_lump(g.bm("moss"), rng, x + ox * k_, y + oy * k_, z + oz * k_, rr * k_, 0.35, 0.12, 2)
+        s_ = v["surface"]
+        vignette_water(g.bm("water"), x, y, s_, r + 0.45, 22)
+        vignette_fall(g.bm("water"), [(x, y + 4.45 * k_, z + 3.05 * k_), (x, y + 3.95 * k_, z + 2.2 * k_), (x, y + 3.35 * k_, z + 1.1 * k_), (x, y + 2.75 * k_, s_ + 0.03)], 1.15 * k_)
+        # Кривой ствол над водой (ref: дерево аркой над прудом).
+        vignette_tube(g.bm("bark"), [(x + 5.2 * k_, y + 1.0, z - 0.2), (x + 4.9 * k_, y + 1.2, z + 1.3), (x + 3.7 * k_, y + 1.0, z + 3.0), (x + 1.7 * k_, y + 0.1, z + 4.3)], (0.62, 0.48, 0.36, 0.2), 8, rng, 0.08)
+        vignette_tube(g.bm("bark"), [(x + 3.7 * k_, y + 1.0, z + 3.0), (x + 4.9 * k_, y - 0.8, z + 4.2), (x + 5.0 * k_, y - 1.6, z + 5.1)], (0.26, 0.16, 0.07), 6)
+        for a in (0.4, 2.0, 3.6, 5.0):
+            tx_, ty_ = x + 5.2 * k_, y + 1.0
+            vignette_tube(g.bm("bark"), [(tx_, ty_, z + 0.5), (tx_ + math.cos(a), ty_ + math.sin(a), z + 0.05), (tx_ + math.cos(a) * 2.0, ty_ + math.sin(a) * 2.0, z - 0.25)], (0.24, 0.17, 0.05), 5)
+        g.finish(VIGNETTE_COLORS, "Poi_")
+    # Исполин: огромный упавший ствол во мху над прудом с кувшинками (ref: мшистый пень с водопадиками).
+    v = VIGNETTES["giant"]
+    g = EditGroup(col, "detail:vignette_giant", (v["x"], v["y"]), h)
+    x, y, z = v["x"], v["y"], v["z"]
+    axis = [(x - 9.5, y + 6.5, z + 0.3), (x - 4.5, y + 7.0, z + 1.5), (x + 1.0, y + 7.4, z + 3.2), (x + 6.0, y + 7.6, z + 5.2), (x + 9.0, y + 7.5, z + 6.4)]
+    radii = (1.75, 1.6, 1.4, 1.15, 0.85)
+    vignette_tube(g.bm("bark"), axis, radii, 12, rng, 0.06)
+    for k, (bx, by, bz, ex, ey, ez, rr) in enumerate(((-4.5, 7.0, 3.0, -7.0, 2.8, 6.4, 0.42), (1.0, 7.4, 4.5, 3.5, 3.0, 8.4, 0.38), (6.0, 7.6, 6.2, 9.5, 4.5, 9.2, 0.3), (-1.5, 7.0, 3.6, -3.0, 11.5, 7.2, 0.36))):
+        vignette_tube(g.bm("bark"), [(x + bx, y + by, z + bz), (x + (bx + ex) / 2 + 0.3, y + (by + ey) / 2, z + (bz + ez) / 2 + 0.2), (x + ex, y + ey, z + ez)], (rr, rr * 0.62, rr * 0.2), 6, rng, 0.08)
+    # Мох — наплывы по верху ствола и у воды.
+    for t in np.linspace(0.0, 1.0, 15):
+        k = min(int(t * 4), 3)
+        f = t * 4 - k
+        px_ = Vector(axis[k]).lerp(Vector(axis[k + 1]), f)
+        rr = radii[k] + (radii[k + 1] - radii[k]) * f
+        vignette_lump(g.bm("moss"), rng, px_.x + rng.uniform(-0.3, 0.3), px_.y - rr * 0.25 + rng.uniform(-0.25, 0.25), px_.z + rr * 0.62, rr * rng.uniform(0.75, 1.0), 0.42, 0.14, 2)
+    # Мшистый край пруда: кочки по всему кругу, кроме прохода с юга — вода не упирается в голую кромку.
+    for a in np.linspace(0.0, math.tau, 27)[:-1]:
+        if 4.5 < a < 5.0:
+            continue
+        rim = v["pool"] + rng.uniform(0.1, 0.7)
+        vignette_lump(g.bm("moss"), rng, x + math.cos(a) * rim, y + math.sin(a) * rim, z - 0.18, rng.uniform(0.75, 1.5), 0.42, 0.18, 2)
+    vignette_water(g.bm("water"), x, y, v["surface"], v["pool"] + 0.5, 24)
+    for ox in (-3.2, 1.3):
+        tz = z + (1.5 if ox < 0 else 3.0)
+        vignette_fall(g.bm("water"), [(x + ox, y + 5.7, tz), (x + ox + 0.05, y + 5.5, tz - 1.0), (x + ox, y + 5.3, v["surface"] + 0.03)], 0.55)
+    g.finish(VIGNETTE_COLORS, "Poi_")
+    # Заросшие руины: обрывки стены, упавшие блоки и плита (ref: руины в плюще, плиты в мху).
+    v = VIGNETTES["ruin"]
+    g = EditGroup(col, "detail:vignette_ruin", (v["x"], v["y"]), h)
+    x, y, z = v["x"], v["y"], v["z"]
+    rot = 0.35
+    cs, sn = math.cos(rot), math.sin(rot)
+
+    def at(ox, oy):
+        return x + cs * ox - sn * oy, y + sn * ox + cs * oy
+    for course, count_ in enumerate((9, 9, 8, 6, 4, 3, 2)):           # стена ступеньками, кладка — рядами блоков
+        for k in range(count_):
+            ox = -5.0 + k * 1.15 + (0.55 if course % 2 else 0.0)
+            px_, py_ = at(ox, 3.5)
+            box(g.bm("stone"), px_, py_, z - 0.1 + course * 0.72, 1.08, 1.0, 0.68, rot + rng.uniform(-0.03, 0.03))
+            if course == count_ - 1 or rng.random() < 0.12 or k == count_ - 1:
+                vignette_lump(g.bm("moss"), rng, px_ + rng.uniform(-0.2, 0.2), py_ + rng.uniform(-0.2, 0.2), z - 0.1 + course * 0.72 + 0.7, rng.uniform(0.5, 0.75), 0.3, 0.2)
+    for course in range(5):                                           # торцевая стена — углом
+        for k in range(5 - course):
+            px_, py_ = at(-5.2, 2.6 - k * 1.15)
+            box(g.bm("stone"), px_, py_, z - 0.1 + course * 0.72, 1.0, 1.08, 0.68, rot + rng.uniform(-0.03, 0.03))
+    rotated_box(g.bm("stone"), *at(3.4, -0.6), z + 1.0, 6.2, 1.6, 0.42, math.radians(-24), rot + 0.5)      # рухнувшая плита
+    for t in (-1.9, -0.6, 0.7, 1.9):                                  # мох наплывами по плите
+        sx_, sy_ = at(3.4 + t * math.cos(0.5), -0.6 + t * math.sin(0.5))
+        vignette_lump(g.bm("moss"), rng, sx_ + rng.uniform(-0.2, 0.2), sy_ + rng.uniform(-0.25, 0.25), z + 1.26 - t * math.tan(math.radians(-24)) * 0.92, rng.uniform(0.55, 0.85), 0.28, 0.2)
+    for ox, oy, s_ in ((-1.0, -1.8, 0.9), (0.2, -3.2, 0.7), (-3.0, -3.5, 0.8), (4.7, 3.0, 0.8), (-2.6, -0.4, 0.6), (6.3, 1.2, 0.7), (1.8, -4.5, 0.55)):
+        px_, py_ = at(ox, oy)
+        rotated_box(g.bm("stone"), px_, py_, z + s_ * 0.2, s_ * 1.3, s_, s_ * 0.8, rng.uniform(-0.25, 0.25), rng.uniform(0, math.tau))
+        if rng.random() < 0.7:
+            vignette_lump(g.bm("moss"), rng, px_, py_, z + s_ * 0.75, s_ * 0.62, 0.32, 0.2)
+    px_, py_ = at(-3.5, -1.5)                                         # старая стела: без знаков
+    box(g.bm("stone"), px_, py_, z - 0.1, 1.5, 1.1, 0.35, rot)
+    box(g.bm("stone"), px_, py_, z + 0.25, 1.0, 0.45, 2.5, rot)
+    vignette_lump(g.bm("moss"), rng, px_, py_, z + 2.74, 0.55, 0.3, 0.18)
+    g.finish(VIGNETTE_COLORS, "Poi_")
+    vignette_stones(col, h, rng)
+    for key in ("outcrop_w", "outcrop_s"):
+        vignette_outcrop(col, h, rng, key)
+    vignette_marsh(col, h, rng)
+    vignette_arch(col, h, rng)
+    vignette_oak(col, h, rng)
+    vignette_camp(col, h, rng)
+    vignette_piers(col, h, rng)
+
+
+def vignette_stones(col, h, rng):
+    """Стоячие камни на лугу: круг без знаков и надписей, два упали (ref: старые стелы)."""
+    v = VIGNETTES["stones"]
+    g = EditGroup(col, "detail:vignette_stones", (v["x"], v["y"]), h)
+    x, y, z = v["x"], v["y"], v["z"]
+    for k in range(9):
+        a = k / 9 * math.tau + rng.uniform(-0.07, 0.07)
+        px_, py_ = x + math.cos(a) * 7.2, y + math.sin(a) * 7.2
+        if k in (2, 6):                                    # упавшие
+            rotated_box(g.bm("rock"), px_, py_, z + 0.28, 3.1, 0.95, 0.7, rng.uniform(-0.06, 0.06), a + rng.uniform(-0.5, 0.5))
+            vignette_lump(g.bm("moss"), rng, px_, py_, z + 0.62, 0.95, 0.28, 0.2, 2)
+            continue
+        tall = rng.uniform(2.7, 4.3)
+        lean = rng.uniform(-0.09, 0.09)
+        rotated_box(g.bm("rock"), px_, py_, z + tall / 2 - 0.25, 1.15, 0.72, tall, lean, a + math.pi / 2 + rng.uniform(-0.2, 0.2))
+        rotated_box(g.bm("rock"), px_, py_, z + tall - 0.1, 0.8, 0.55, 0.5, lean + rng.uniform(-0.2, 0.2), a + math.pi / 2)
+        if rng.random() < 0.75:
+            vignette_lump(g.bm("moss"), rng, px_, py_, z + tall + 0.05, 0.62, 0.32, 0.2, 2)
+        vignette_lump(g.bm("moss"), rng, px_ + rng.uniform(-0.5, 0.5), py_ + rng.uniform(-0.5, 0.5), z + 0.05, 0.75, 0.4, 0.2)
+    box(g.bm("rock"), x, y, z - 0.1, 2.4, 1.6, 0.55, 0.4)                       # плоский камень в середине
+    vignette_lump(g.bm("moss"), rng, x - 0.5, y + 0.2, z + 0.47, 0.75, 0.22, 0.2, 2)
+    g.finish(VIGNETTE_COLORS, "Poi_")
+
+
+def vignette_outcrop(col, h, rng, key):
+    """Каменная гряда на лугу: плоские уступы один над другим, мох по верху (ref: скальные выходы в пейзажах)."""
+    v = VIGNETTES[key]
+    g = EditGroup(col, "detail:vignette_" + key, (v["x"], v["y"]), h)
+    x, y, z = v["x"], v["y"], v["z"]
+    rot = rng.uniform(0, math.tau)
+    cs, sn = math.cos(rot), math.sin(rot)
+    shelves = ((-6.0, 0.0, 0.1, 3.3), (-2.2, 1.0, 0.2, 3.9), (2.2, 0.4, 0.15, 3.4), (6.0, -0.8, 0.05, 2.7), (-3.6, 0.6, 1.0, 2.5), (0.2, 1.1, 1.1, 2.9), (3.2, 0.5, 0.95, 2.0), (-1.3, 1.2, 1.9, 1.8))
+    for ox, oy, oz, r in shelves:
+        px_, py_ = x + cs * ox - sn * oy, y + sn * ox + cs * oy
+        vignette_lump(g.bm("rock"), rng, px_, py_, z + oz, r, 0.34, 0.12, 2)
+        if rng.random() < 0.8:
+            vignette_lump(g.bm("moss"), rng, px_ + rng.uniform(-0.6, 0.6), py_ + rng.uniform(-0.6, 0.6), z + oz + r * 0.27, r * rng.uniform(0.45, 0.7), 0.14, 0.18, 2)
+    g.finish(VIGNETTE_COLORS, "Poi_")
+
+
+def vignette_marsh(col, h, rng):
+    """Болотце: тёмные лужи, сухие стволы в воде, «колени» корней и кочки мха (ref: болото с кипарисами)."""
+    v = VIGNETTES["marsh"]
+    g = EditGroup(col, "detail:vignette_marsh", (v["x"], v["y"]), h)
+    x, y, z = v["x"], v["y"], v["z"]
+    s_ = v["surface"]
+    for ox, oy, pr in v["pools"]:
+        vignette_water(g.bm("water"), x + ox, y + oy, s_, pr + 0.4, 16)
+        for k in range(int(pr * 6)):                       # кочки сплошь: сетка рельефа 2 м дала бы лужам прямые края
+            a = k / int(pr * 6) * math.tau + rng.uniform(-0.1, 0.1)
+            vignette_lump(g.bm("moss"), rng, x + ox + math.cos(a) * (pr * 0.92), y + oy + math.sin(a) * (pr * 0.92), z - 0.2, rng.uniform(0.7, 1.25), 0.42, 0.2, 2)
+    for ox, oy, tall, r in ((-2.0, 1.0, 6.5, 0.52), (2.6, -1.5, 8.0, 0.62), (-6.0, 4.5, 4.5, 0.4), (6.4, -2.0, 5.4, 0.45)):
+        bx, by = x + ox, y + oy
+        lean = (rng.uniform(-0.7, 0.7), rng.uniform(-0.7, 0.7))
+        vignette_tube(g.bm("bark"), [(bx, by, s_ - 0.4), (bx + lean[0] * 0.3, by + lean[1] * 0.3, s_ + tall * 0.4), (bx + lean[0] * 0.7, by + lean[1] * 0.7, s_ + tall * 0.75), (bx + lean[0], by + lean[1], s_ + tall)], (r * 1.5, r, r * 0.62, r * 0.2), 7, rng, 0.1)
+        for a in (0.3, 1.8, 3.4, 4.9):                     # раструб у воды
+            vignette_tube(g.bm("bark"), [(bx, by, s_ + 0.9), (bx + math.cos(a) * r * 2.0, by + math.sin(a) * r * 2.0, s_ + 0.15), (bx + math.cos(a) * r * 3.2, by + math.sin(a) * r * 3.2, s_ - 0.3)], (r * 0.5, r * 0.34, r * 0.1), 5)
+        for t, a, ln in ((0.55, rng.uniform(0, math.tau), 1.9), (0.8, rng.uniform(0, math.tau), 1.5)):
+            sx_, sy_, sz_ = bx + lean[0] * t, by + lean[1] * t, s_ + tall * t
+            vignette_tube(g.bm("bark"), [(sx_, sy_, sz_), (sx_ + math.cos(a) * ln * 0.6, sy_ + math.sin(a) * ln * 0.6, sz_ + 0.5), (sx_ + math.cos(a) * ln, sy_ + math.sin(a) * ln, sz_ + 1.0)], (r * 0.28, r * 0.17, r * 0.05), 5)
+    for k in range(12):                                    # «колени» корней над водой
+        ox, oy, pr = rng.choice(v["pools"])
+        a, rr = rng.uniform(0, math.tau), rng.uniform(0.6, pr - 0.3)
+        bx, by = x + ox + math.cos(a) * rr, y + oy + math.sin(a) * rr
+        tall = rng.uniform(0.35, 0.95)
+        vignette_tube(g.bm("bark"), [(bx, by, s_ - 0.2), (bx, by, s_ + tall * 0.6), (bx + 0.04, by, s_ + tall)], (0.28, 0.17, 0.04), 6)
+    g.finish(VIGNETTE_COLORS, "Poi_")
+
+
+def vignette_arch(col, h, rng):
+    """Разрушенная арка у старого тракта: одна опора цела, вторая обломана, кольцо камней оборвано (ref: руины на холме)."""
+    v = VIGNETTES["arch"]
+    g = EditGroup(col, "detail:vignette_arch", (v["x"], v["y"]), h)
+    x, y, z = v["x"], v["y"], v["z"]
+    rot = 0.25
+    cs, sn = math.cos(rot), math.sin(rot)
+
+    def at(ox, oy=0.0):
+        return x + cs * ox - sn * oy, y + sn * ox + cs * oy
+    for side, courses in ((-1, 7), (1, 4)):
+        for c in range(courses):
+            px_, py_ = at(side * 3.0 + rng.uniform(-0.05, 0.05))
+            box(g.bm("stone"), px_, py_, z - 0.15 + c * 0.62, 1.35, 1.25, 0.58, rot + rng.uniform(-0.04, 0.04))
+    cx_z = z - 0.15 + 7 * 0.62
+    R = 3.0
+    for k in range(7):
+        a = math.pi - (k + 0.5) * (math.pi * 0.72) / 7     # от левой опоры вправо, обрывается на 3/4 дуги
+        ox, oz = math.cos(a) * R, math.sin(a) * R
+        px_, py_ = at(ox)
+        rotated_box(g.bm("stone"), px_, py_, cx_z + oz, 1.05, 1.15, 0.6, math.pi / 2 - a, rot)
+    for ox, oy, s_ in ((3.4, -2.0, 0.85), (1.8, -3.0, 0.7), (4.6, 0.6, 0.7), (0.3, 2.4, 0.6), (2.3, 1.4, 0.75)):
+        px_, py_ = at(ox, oy)
+        rotated_box(g.bm("stone"), px_, py_, z + s_ * 0.2, s_ * 1.3, s_, s_ * 0.8, rng.uniform(-0.3, 0.3), rng.uniform(0, math.tau))
+        if rng.random() < 0.65:
+            vignette_lump(g.bm("moss"), rng, px_, py_, z + s_ * 0.74, s_ * 0.6, 0.32, 0.2)
+    for a in (2.9, 2.4, 1.9, 1.5):
+        ox, oz = math.cos(a) * (R + 0.2), math.sin(a) * (R + 0.2)
+        px_, py_ = at(ox)
+        vignette_lump(g.bm("moss"), rng, px_, py_, cx_z + oz + 0.32, 0.72, 0.3, 0.2, 2)
+    g.finish(VIGNETTE_COLORS, "Poi_")
+
+
+def vignette_oak(col, h, rng):
+    """Огромное старое дерево на поляне: толстые корни по земле, мох (ref: стволы в плюще и трутовиках)."""
+    v = VIGNETTES["oak"]
+    g = EditGroup(col, "detail:vignette_oak", (v["x"], v["y"]), h)
+    x, y, z = v["x"], v["y"], v["z"]
+    vignette_tube(g.bm("bark"), [(x, y, z - 0.4), (x, y, z + 1.3), (x + 0.1, y, z + 2.9), (x + 0.15, y, z + 4.4)], (1.45, 1.05, 0.82, 0.6), 11, rng, 0.08)
+    for k in range(9):
+        a = k / 9 * math.tau + rng.uniform(-0.2, 0.2)
+        ln = rng.uniform(4.2, 6.5)
+        wob = rng.uniform(-0.3, 0.3)
+        vignette_tube(g.bm("bark"), [(x + math.cos(a) * 0.6, y + math.sin(a) * 0.6, z + 1.4), (x + math.cos(a) * ln * 0.3, y + math.sin(a) * ln * 0.3, z + 0.65), (x + math.cos(a + wob) * ln * 0.65, y + math.sin(a + wob) * ln * 0.65, z + 0.2), (x + math.cos(a + wob) * ln, y + math.sin(a + wob) * ln, z - 0.28)], (0.6, 0.44, 0.27, 0.05), 6, rng, 0.08)
+        if rng.random() < 0.75:
+            mx, my = x + math.cos(a + wob) * ln * 0.55, y + math.sin(a + wob) * ln * 0.55
+            vignette_lump(g.bm("moss"), rng, mx, my, z + 0.45, 0.8, 0.3, 0.2, 2)
+    for z_off, ang in ((1.6, 0.8), (2.9, 3.6)):
+        vignette_lump(g.bm("moss"), rng, x + math.cos(ang) * 0.82, y + math.sin(ang) * 0.82, z + z_off, 0.85, 0.75, 0.2, 2)
+    g.finish(VIGNETTE_COLORS, "Poi_")
+
+
+def vignette_camp(col, h, rng):
+    """Брошенная стоянка у дороги: кольцо кострища без огня, навес из старой ткани."""
+    v = VIGNETTES["camp"]
+    g = EditGroup(col, "detail:vignette_camp", (v["x"], v["y"]), h)
+    x, y, z = v["x"], v["y"], v["z"]
+    for k in range(9):
+        a = k / 9 * math.tau
+        vignette_lump(g.bm("rock"), rng, x + math.cos(a) * 1.05, y + math.sin(a) * 1.05, z + 0.05, rng.uniform(0.22, 0.34), 0.75, 0.2)
+    vignette_lump(g.bm("dark"), rng, x, y, z - 0.1, 0.95, 0.15, 0.15, 2)
+    for k in range(4):
+        a = rng.uniform(0, math.tau)
+        rotated_box(g.bm("dark"), x + math.cos(a) * 0.3, y + math.sin(a) * 0.3, z + 0.08, 0.9, 0.1, 0.1, rng.uniform(-0.2, 0.2), a)
+    tx, ty = x + 0.5, y + 4.4
+    for ox in (-1.6, 1.6):
+        rotated_box(g.bm("wood"), tx + ox, ty - 1.35, z + 0.72, 0.1, 0.1, 1.6, 0.0, 0.0)
+        rotated_box(g.bm("wood"), tx + ox, ty + 1.35, z + 0.72, 0.1, 0.1, 1.6, 0.0, 0.0)
+    for s_ in (-1, 1):
+        rotated_box(g.bm("wood"), tx, ty + s_ * 1.35, z + 1.55, 3.5, 0.09, 0.09, 0.0, 0.0)
+    a_, b_ = (tx - 1.75, ty - 1.5, z + 1.25), (tx + 1.75, ty - 1.5, z + 1.25)
+    c_, d_ = (tx + 1.75, ty + 1.5, z + 1.75), (tx - 1.75, ty + 1.5, z + 1.75)
+    bm = g.bm("cloth")
+    bm.faces.new([bm.verts.new(p_) for p_ in (a_, b_, c_, d_)])
+    bm.faces.new([bm.verts.new(p_) for p_ in (d_, c_, (tx + 1.75, ty + 1.8, z + 0.5), (tx - 1.75, ty + 1.8, z + 0.5))])
+    g.finish(VIGNETTE_COLORS, "Poi_")
+
+
+def vignette_piers(col, h, rng):
+    """Обломки старого моста: опора на берегу и две в реке, кусок арки; по камню мох и плети."""
+    v = VIGNETTES["piers"]
+    g = EditGroup(col, "detail:vignette_piers", (v["x"], v["y"]), h)
+    x, y, z = v["x"], v["y"], v["z"]
+    nx_, ny_ = v["n"]
+    qx, qy = v["q"]
+    rot = math.atan2(ny_, nx_)
+    water_z = v["water"]
+    top = water_z + 6.0
+    for t, tall in ((-6.0, top), (5.5, top - 2.3)):        # две опоры в реке, вторая обломана
+        px_, py_ = qx + nx_ * t, qy + ny_ * t
+        z0 = water_z - 2.6
+        cz = z0
+        c = 0
+        while cz < tall:
+            box(g.bm("stone"), px_, py_, cz, 2.4 - 0.05 * c, 3.4 - 0.05 * c, 0.75, rot + rng.uniform(-0.03, 0.03))
+            cz += 0.75
+            c += 1
+        vignette_lump(g.bm("moss"), rng, px_, py_, tall + 0.1, 1.15, 0.3, 0.2, 2)
+    # Опора на берегу: ступени кладки.
+    for c in range(8):
+        box(g.bm("stone"), x - nx_ * c * 0.25, y - ny_ * c * 0.25, z - 0.2 + c * 0.75, 3.2 - c * 0.15, 4.0, 0.74, rot + rng.uniform(-0.02, 0.02))
+    vignette_lump(g.bm("moss"), rng, x - nx_ * 1.7, y - ny_ * 1.7, z + 5.9, 1.3, 0.28, 0.2, 2)
+    # Кусок арки от берега к первой опоре.
+    sx_, sy_ = x - nx_ * 1.6, y - ny_ * 1.6
+    ex_, ey_ = qx + nx_ * 5.5, qy + ny_ * 5.5
+    L = math.hypot(ex_ - sx_, ey_ - sy_)
+    for k in range(4):
+        t = (k + 0.5) / 7.0
+        px_ = sx_ + (ex_ - sx_) * t
+        py_ = sy_ + (ey_ - sy_) * t
+        pz = z + 5.0 + math.sin(t * math.pi) * 2.2
+        tilt = -math.atan(math.cos(t * math.pi) * 2.2 * math.pi / L)
+        rotated_box(g.bm("stone"), px_, py_, pz, L / 7.0 + 0.1, 3.4, 0.7, tilt, math.atan2(ey_ - sy_, ex_ - sx_))
+        if k % 2:
+            vignette_lump(g.bm("moss"), rng, px_, py_, pz + 0.4, 0.95, 0.26, 0.2, 2)
+    g.finish(VIGNETTE_COLORS, "Poi_")
+
+
+def vignette_plants(placed, h):
+    """Растения и камни у особых мест: плотнее, чем вокруг. Вода: кувшинки и рогоз."""
+    rng = random.Random(92)
+
+    def put(name, x, y, s, z=None, sink=0.02, rot=None):
+        zz = (height_at(h, x, y) - sink) if z is None else z
+        placed.setdefault(name, []).extend([round(x, 2), round(zz, 2), round(-y, 2),
+                                            round(rng.uniform(0, math.tau) if rot is None else rot, 2), round(s, 2)])
+
+    def ring(v, r0, r1, n, names, s_lo=0.8, s_hi=1.3):
+        for _ in range(n):
+            a, rr = rng.uniform(0, math.tau), rng.uniform(r0, r1)
+            put(rng.choice(names), v["x"] + math.cos(a) * rr, v["y"] + math.sin(a) * rr, rng.uniform(s_lo, s_hi))
+    for key in ("spring", "falls"):
+        v = VIGNETTES[key]
+        k_ = v["pool"] / 4.2
+        ring(v, v["pool"] + 1.2, v["r"], 34, ("Dt_Fern_A", "Dt_Fern_B", "Dt_Broad_A", "Dt_Broad_B", "Dt_Lily", "Dt_Spike", "Dt_Tuft_Tall"))
+        ring(v, v["pool"] + 1.0, v["r"], 10, ("Dt_Moss_A", "Dt_Moss_B", "Dt_Pebbles_A"))
+        for _ in range(8):
+            a, rr = rng.uniform(0, math.tau), rng.uniform(0.8, v["pool"] - 0.8)
+            put(rng.choice(("LilyPad_1", "LilyPad_2")), v["x"] + math.cos(a) * rr, v["y"] + math.sin(a) * rr, rng.uniform(0.8, 1.2), z=v["surface"] + 0.01)
+        put("WillowTree_2", v["x"] + 7.5 * k_, v["y"] + 3.5, 1.5, sink=0.2)
+        put("Pr_Roots", v["x"] + 7.5 * k_, v["y"] + 3.5, 1.4)
+        put("Pr_Vine", v["x"] + 2.9 * k_, v["y"] + 1.0, 0.8, z=v["z"] + 3.6 * k_)
+    v = VIGNETTES["giant"]
+    ring(v, v["pool"] + 1.0, v["r"] + 2.0, 42, ("Dt_Fern_A", "Dt_Fern_B", "Dt_Fern_B", "Dt_Broad_A", "Dt_Tuft_Tall", "Dt_Shroom_Tan", "Dt_Shroom_Red"))
+    ring(v, v["pool"] + 0.8, v["r"] + 1.0, 12, ("Dt_Moss_B", "Dt_Moss_A", "Dt_Litter", "Dt_Twigs"))
+    for _ in range(16):
+        a, rr = rng.uniform(0, math.tau), rng.uniform(1.0, v["pool"] - 0.5)
+        put(rng.choice(("LilyPad_1", "LilyPad_2")), v["x"] + math.cos(a) * rr, v["y"] + math.sin(a) * rr, rng.uniform(1.0, 1.7), z=v["surface"] + 0.01)
+    for _ in range(9):
+        a = rng.uniform(math.pi, math.tau)
+        put("Dt_Cattail", v["x"] + math.cos(a) * (v["pool"] - 0.3), v["y"] + math.sin(a) * (v["pool"] - 0.3), rng.uniform(0.9, 1.2), sink=0.1)
+    for ox, oz in ((-6.5, 2.2), (-3.0, 3.2), (2.6, 4.9), (5.6, 6.4)):
+        put("Pr_Vine", v["x"] + ox, v["y"] + 5.55, 1.0, z=v["z"] + oz, rot=rng.uniform(-0.2, 0.2))
+    v = VIGNETTES["ruin"]
+    ring(v, 2.0, v["r"] + 1.5, 26, ("Dt_Tuft_Tall", "Dt_Tuft_A", "Dt_Umbel", "Dt_Poppy", "Dt_Fern_C", "Dt_Broad_B"))
+    ring(v, 1.5, v["r"], 12, ("Dt_Moss_A", "Dt_Pebbles_A", "Dt_Pebbles_A", "Dt_Moss_B"))
+    cs, sn = math.cos(0.35), math.sin(0.35)
+    for ox, oz in ((-4.6, 3.9), (-3.0, 4.6), (-1.4, 3.2), (0.4, 2.5), (2.4, 1.4)):         # плющ по верху стены
+        put("Pr_Vine", v["x"] + cs * ox - sn * 3.0, v["y"] + sn * ox + cs * 3.0, 0.8, z=v["z"] + oz, rot=0.35)
+    put("Pr_Boulder_B", v["x"] + 8.2, v["y"] + 2.5, 1.2, sink=0.15)
+    put("Pr_Boulder_A", v["x"] - 7.8, v["y"] - 3.8, 1.3, sink=0.15)
+    put("NormalTree_3", v["x"] + 9.5, v["y"] + 7.0, 1.3, sink=0.15)
+    put("Pr_Ivy", v["x"] + 9.5, v["y"] + 7.0, 1.1, z=v["z"] + 0.05)
+    put("Pr_Roots", v["x"] + 9.5, v["y"] + 7.0, 1.2)
+    v = VIGNETTES["stones"]
+    ring(v, 3.0, v["r"] + 3.0, 34, ("Dt_Tuft_Tall", "Dt_Tuft_Dry", "Dt_Umbel", "Dt_Umbel", "Dt_Lily", "Dt_Tuft_A"))
+    ring(v, 1.8, v["r"], 12, ("Dt_Moss_A", "Dt_Moss_B", "Dt_Pebbles_B"))
+    for key in ("outcrop_w", "outcrop_s"):
+        v = VIGNETTES[key]
+        ring(v, 2.5, v["r"] + 3.0, 30, ("Dt_Tuft_Tall", "Dt_Tuft_A", "Dt_Poppy", "Dt_Spike", "Dt_Fern_C", "Dt_Broad_B"))
+        ring(v, 2.0, v["r"] + 1.0, 12, ("Dt_Pebbles_A", "Dt_Pebbles_B", "Dt_Moss_A"))
+        put("Pr_Boulder_B", v["x"] + 9.0, v["y"] - 4.0, 1.1, sink=0.15)
+        put("Pr_Boulder_A", v["x"] - 8.0, v["y"] + 4.5, 1.2, sink=0.15)
+    v = VIGNETTES["marsh"]
+    for ox, oy, pr in v["pools"]:
+        for _ in range(int(pr * 2.5)):
+            a, rr = rng.uniform(0, math.tau), rng.uniform(0.5, pr - 0.3)
+            put(rng.choice(("LilyPad_1", "LilyPad_2")), v["x"] + ox + math.cos(a) * rr, v["y"] + oy + math.sin(a) * rr, rng.uniform(0.8, 1.5), z=v["surface"] + 0.01)
+        for _ in range(int(pr * 3)):
+            a = rng.uniform(0, math.tau)
+            put(rng.choice(("Dt_Cattail", "Dt_Cattail", "Dt_Tuft_Tall")), v["x"] + ox + math.cos(a) * (pr - 0.2), v["y"] + oy + math.sin(a) * (pr - 0.2), rng.uniform(0.9, 1.25), sink=0.1)
+    ring(v, 9.0, v["r"] + 3.0, 34, ("Dt_Fern_B", "Dt_Fern_A", "Dt_Broad_A", "Dt_Shroom_Tan", "Dt_Tuft_Tall"))
+    ring(v, 8.0, v["r"] + 2.0, 12, ("Dt_Moss_B", "Dt_Twigs", "Dt_Litter"))
+    for ox, oy, oz in ((-2.0, 1.0, 3.8), (2.6, -1.5, 4.8), (6.4, -2.0, 3.0)):
+        put("Pr_Vine", v["x"] + ox + 0.6, v["y"] + oy, 0.7, z=v["surface"] + oz)
+    v = VIGNETTES["arch"]
+    ring(v, 2.0, v["r"] + 3.0, 26, ("Dt_Tuft_Tall", "Dt_Tuft_A", "Dt_Umbel", "Dt_Poppy", "Dt_Fern_C"))
+    ring(v, 1.5, v["r"], 9, ("Dt_Moss_A", "Dt_Pebbles_A", "Dt_Pebbles_A"))
+    for ox, oz in ((-3.0, 4.6), (-2.2, 6.6), (-0.4, 7.2), (3.0, 2.6)):
+        put("Pr_Vine", v["x"] + math.cos(0.25) * ox, v["y"] + math.sin(0.25) * ox, 0.75, z=v["z"] + oz, rot=0.25)
+    v = VIGNETTES["oak"]
+    put("NormalTree_2", v["x"], v["y"], 2.9, sink=0.3)
+    put("Pr_Ivy", v["x"], v["y"], 3.4, z=v["z"] + 0.3)
+    for _ in range(4):
+        a = rng.uniform(0, math.tau)
+        put("Pr_Vine", v["x"] + math.cos(a) * 3.0, v["y"] + math.sin(a) * 3.0, rng.uniform(0.9, 1.2), z=v["z"] + 6.5, rot=a)
+    ring(v, 5.5, v["r"] + 3.0, 40, ("Dt_Fern_B", "Dt_Fern_A", "Dt_Broad_A", "Dt_Lily", "Dt_Spike", "Dt_Tuft_Tall"))
+    ring(v, 3.0, v["r"] + 1.0, 20, ("Dt_Moss_B", "Dt_Moss_A", "Dt_Shroom_Tan", "Dt_Shroom_Red", "Dt_Shroom_Tan", "Dt_Litter"))
+    v = VIGNETTES["camp"]
+    put("Pr_Log_A", v["x"] - 2.6, v["y"] + 0.3, 0.75, sink=0.03, rot=1.3)
+    put("Pr_Log_A", v["x"] + 2.4, v["y"] - 0.4, 0.7, sink=0.03, rot=-1.2)
+    put("Pr_Barrels", v["x"] - 3.5, v["y"] + 4.2, 0.9)
+    put("Pr_Crates", v["x"] + 3.8, v["y"] + 4.0, 0.9)
+    ring(v, 3.5, v["r"] + 3.0, 22, ("Dt_Tuft_A", "Dt_Tuft_Dry", "Dt_Umbel", "Dt_Twigs", "Dt_Pebbles_A"))
+    v = VIGNETTES["piers"]
+    ring(v, 3.5, v["r"] + 3.5, 20, ("Dt_Tuft_Tall", "Dt_Tuft_A", "Dt_Umbel", "Dt_Pebbles_A", "Dt_Moss_A", "Dt_Fern_C"))
+    nx_, ny_ = v["n"]
+    qx, qy = v["q"]
+    for t, oz in ((-6.0, 6.0), (5.5, 3.7)):
+        for s_ in (-1.2, 1.2):
+            put("Pr_Vine", qx + nx_ * t - ny_ * s_ + nx_ * 1.2, qy + ny_ * t + nx_ * s_ + ny_ * 1.2, 0.8, z=v["water"] + oz, rot=math.atan2(ny_, nx_) + math.pi / 2)
+    put("Pr_Vine", v["x"] + nx_ * 1.6, v["y"] + ny_ * 1.6, 0.95, z=v["z"] + 5.0, rot=math.atan2(ny_, nx_) + math.pi / 2)
+
+
 def preview_nature(col, placed):
     """Модели пака — экземплярами на точках (Geometry Nodes: поворот и масштаб из атрибутов) — для рендеров сверки."""
     before = set(bpy.data.objects)
@@ -3312,12 +4136,17 @@ def build():
     h, road_d, path_d = shape(h, fbm)
     h, river, dl = water(h)
     h = bridge_banks(h, river)
+    h = vignette_terrain(h, river)
     forest = forest_density(h, fbm, road_d, path_d, river, dl)
     c = colors(h, fbm, road_d, path_d, river, dl, forest)
     write_godot_data(h, fbm, road_d, path_d, river, dl, forest)
     terrain_mesh(col, h, c)
     road_ribbons(col, h, river, dl)
     placed = nature(h, forest, river, dl, road_d, path_d, fbm)
+    clear_roads(placed, road_d, path_d)              # до наполнения: у убранных деревьев не появятся плющ и корни
+    extras(placed, h, forest, river, dl, road_d, path_d, fbm)
+    clear_roads(placed, road_d, path_d)
+    write_roads_json()
     import json
     with open(NATURE_JSON, "w", encoding="utf-8") as f:
         json.dump(placed, f, separators=(",", ":"))
@@ -3337,6 +4166,7 @@ def build():
     village(col, h)
     pois(col, h)
     details(col, h, forest)
+    vignettes(col, h)
     points(col)
     np.save(os.path.join(PROJECT, "Арт", "Blender", "world_heights.npy"), h.astype(np.float32))
     np.save(os.path.join(PROJECT, "Арт", "Blender", "world_forest.npy"), forest.astype(np.float32))
