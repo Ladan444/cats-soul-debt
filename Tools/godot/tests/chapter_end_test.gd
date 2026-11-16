@@ -1,6 +1,6 @@
 extends SceneTree
 ## Тест экрана после финала (ChapterEndScreen): титры идут, Enter пропускает, «Ждите продолжения» и кнопка в меню;
-## «Продолжить» распознаёт сохранение после финала. Сохранение игрока на время теста сохраняется и возвращается.
+## «Продолжить» распознаёт сохранение после финала. Сохранение теста — в его папке (user_files.gd), сейв игрока не трогается.
 ## Запуск (в окне): godot_run.ps1 test Tools/godot/tests/chapter_end_test.gd
 
 var fails: Array[String] = []
@@ -27,11 +27,7 @@ func _run() -> void:
 	_SaveGame = root.get_node("SaveGame")
 	_QuestState = root.get_node("QuestState")
 	CES = load("res://scripts/ui/chapter_end_screen.gd")
-	var path := "user://save_0.json"
-	var backup := ""
-	var had := FileAccess.file_exists(path)
-	if had:
-		backup = FileAccess.get_file_as_string(path)
+	var path: String = _SaveGame.PATH
 
 	# 1. Распознавание сохранения.
 	var steps: int = _QuestState.QUESTS["chapter1"]["steps"].size()
@@ -65,13 +61,6 @@ func _run() -> void:
 	await wait(0.5)
 	ok(_find_screen() == null, "кнопка закрывает экран")
 
-	# Возвращаем сохранение игрока.
-	if had:
-		var f := FileAccess.open(path, FileAccess.WRITE)
-		f.store_string(backup)
-		f.close()
-	else:
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	print("=== ОШИБОК: %d ===" % fails.size())
 	quit(1 if fails.size() > 0 else 0)
 

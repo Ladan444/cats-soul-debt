@@ -12,6 +12,9 @@ const HOLD := 0.35
 ## Ближе этой глубины место считается сухим (сюда лягут утерянные гелиосы).
 const DRY := 0.1
 const SPLASH := Color(0.72, 0.86, 0.95)
+## Через сколько кадров после загрузки сцены проверить, не над глубиной ли Рэй: к этому времени готова коллизия мостов
+## (иначе сохранение на настиле выглядело бы как глубина), а утонуть он ещё не успевает (HOLD — 21 кадр).
+const START_CHECK_FRAMES := 5
 
 var player: CharacterBody3D
 var _lake := PackedVector2Array()
@@ -20,6 +23,7 @@ var _river: Array = []       # [x, z, гладь, полуширина меша 
 var _ponds: Array = []       # [x, z, радиус, гладь]
 var _under := 0.0
 var _last_dry := Vector3.INF
+var _start_check_left := START_CHECK_FRAMES
 
 
 func _ready() -> void:
@@ -56,7 +60,32 @@ func surface_at(p: Vector2) -> float:
 	return NAN
 
 
+## Q12: сохранение с Рэем на глубине (или в воздухе над ней) — без этой проверки он тонул снова и снова: место загрузки
+## становилось точкой возрождения. Смотрим на пол под ним, а не на его высоту: настил моста над водой — обычное место.
+func _leave_if_started_deep() -> void:
+	if player.noclip or PlayerState.god_mode:
+		return
+	var pos := player.global_position
+	var surface := surface_at(Vector2(pos.x, pos.z))
+	if is_nan(surface):
+		return
+	var q := PhysicsRayQueryParameters3D.create(pos + Vector3.UP * 0.5, pos + Vector3.DOWN * 200.0, CombatFX.LAYER_WORLD)
+	var hit := player.get_world_3d().direct_space_state.intersect_ray(q)
+	var floor_y: float = hit.position.y if hit else pos.y
+	if surface - floor_y < DEEP:
+		return
+	_under = 0.0
+	var cycle := get_parent().get_node_or_null("DeathCycle")
+	if cycle:
+		# В конце кадра: возрождение может сменить сцену (фонарь в другой локации), а здесь идёт обход узлов физики.
+		cycle.finish_interrupted_respawn.call_deferred()
+
+
 func _physics_process(delta: float) -> void:
+	if _start_check_left > 0:
+		_start_check_left -= 1
+		if _start_check_left == 0:
+			_leave_if_started_deep()
 	# is_alive, не hp: die() сразу возвращает здоровье, и за время затемнения Рэй утонул бы ещё несколько раз.
 	if player.noclip or player.input_locked or not player.is_alive():
 		_under = 0.0

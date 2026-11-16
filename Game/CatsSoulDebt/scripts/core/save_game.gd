@@ -1,8 +1,11 @@
 extends Node
-## Сохранение в один слот (автозагрузка SaveGame): user://save_0.json.
+## Сохранение в один слот (автозагрузка SaveGame): user://save_0.json, у тестов — в своей папке (user_files.gd).
 ## Пока хранит PlayerState, сцену и позицию игрока. Список слотов («Загрузить») — позже.
 
-const PATH := "user://save_0.json"
+const UserFiles := preload("res://scripts/core/user_files.gd")
+
+## Задаётся один раз при запуске, дальше как константа.
+var PATH: String = UserFiles.path("save_0.json")
 
 ## Позиция, которую игрок должен занять после загрузки сцены (читает player.gd).
 var pending_position: Variant = null
@@ -36,7 +39,7 @@ func save(scene_path: String, player_position: Vector3) -> void:
 		return
 	f.store_string(JSON.stringify(data, "\t"))
 	f.close()
-	var dir := DirAccess.open("user://")
+	var dir := DirAccess.open(PATH.get_base_dir())
 	if FileAccess.file_exists(PATH):
 		if FileAccess.file_exists(PATH + ".bak"):
 			dir.remove(PATH.get_file() + ".bak")

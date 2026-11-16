@@ -89,8 +89,6 @@ func _run() -> void:
 	quests = root.get_node("QuestState")
 	ps = root.get_node("PlayerState")
 	var save := root.get_node("SaveGame")
-	var had_save := FileAccess.file_exists("user://save_0.json")
-	var backup := FileAccess.get_file_as_string("user://save_0.json") if had_save else ""
 
 	print("— Пролог")
 	save.new_game(1, load("res://scripts/ui/main_menu.gd").GAME_SCENE)
@@ -178,13 +176,8 @@ func _run() -> void:
 			break
 		await wait(0.25)
 	check(end_screen, "после финала — титры и «Ждите продолжения»")
-	check(FileAccess.file_exists("user://save_0.json") and "\"chapter1\": %d" % quests.steps("chapter1").size() in FileAccess.get_file_as_string("user://save_0.json").replace("	", "").replace("
+	check(FileAccess.file_exists(save.PATH) and "\"chapter1\": %d" % quests.steps("chapter1").size() in FileAccess.get_file_as_string(save.PATH).replace("	", "").replace("
 ", ""), "после финала записано сохранение с пройденной главой")
 
-	if had_save:
-		var f := FileAccess.open("user://save_0.json", FileAccess.WRITE)
-		f.store_string(backup)
-	elif FileAccess.file_exists("user://save_0.json"):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://save_0.json"))
 	print("=== ОШИБОК: %d ===" % errors)
 	quit(errors)

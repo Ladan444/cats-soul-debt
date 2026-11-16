@@ -40,8 +40,6 @@ func _run() -> void:
 	var cheats := root.get_node("Cheats")
 	var quests := root.get_node("QuestState")
 	var ps := root.get_node("PlayerState")
-	var had_save: bool = FileAccess.file_exists("user://save_0.json")
-	var save_backup := FileAccess.get_file_as_string("user://save_0.json") if had_save else ""
 	# 1. Новая игра — таверна, выход в Брод.
 	save.new_game(1, load("res://scripts/ui/main_menu.gd").GAME_SCENE)
 	check(await wait_scene("tavern.tscn"), "новая игра начинается в таверне")
@@ -103,11 +101,5 @@ func _run() -> void:
 	check(await wait_scene("crossroads.tscn"), "телепорт на Перепутье")
 	cheats.teleport("res://scenes/ui/main_menu.tscn")
 	check(await wait_scene("main_menu.tscn"), "телепорт в главное меню")
-	# Сохранение после теста — вернуть как было.
-	if had_save:
-		var f := FileAccess.open("user://save_0.json", FileAccess.WRITE)
-		f.store_string(save_backup)
-	elif FileAccess.file_exists("user://save_0.json"):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://save_0.json"))
 	print("=== ОШИБОК: %d ===" % errors)
 	quit(errors)

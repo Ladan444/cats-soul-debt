@@ -80,6 +80,8 @@ var _invulnerable: float = 0.0
 var _knock: Vector3 = Vector3.ZERO
 var _ghost: bool = false
 var _dead: bool = false
+## Начало локации: где Рэй стоит в сцене, без позиции из сохранения (туда ведёт DeathCycle.finish_interrupted_respawn).
+var scene_start: Vector3
 ## Сколько ещё есть (еда, ItemData.use_time): Рэй идёт медленно и не бьёт; удар по нему или рывок — прерывают.
 var _eat_left: float = 0.0
 const EAT_SPEED := 0.4
@@ -113,6 +115,7 @@ func _ready() -> void:
 	PlayerState.eating_started.connect(_on_eating_started)
 	PlayerState.buff_started.connect(func(title: String): CombatFX.float_text(global_position + Vector3(0, 2.2, 0), title, Color("8fd8d0")))
 	PlayerState.buff_ended.connect(func(title: String): CombatFX.float_text(global_position + Vector3(0, 2.2, 0), "Выдохлось: " + title, Color("c8c0b0")))
+	scene_start = global_position
 	# Продолжение сохранённой игры: встаём туда, где сохранились.
 	if SaveGame.pending_position != null:
 		global_position = SaveGame.pending_position

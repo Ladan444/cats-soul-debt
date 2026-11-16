@@ -1,10 +1,10 @@
 extends Node
-## Настройки игры (автозагрузка Settings): хранение в user://settings.cfg и применение.
+## Настройки игры (автозагрузка Settings): хранение в user://settings.cfg (у тестов — своя папка, user_files.gd) и применение.
 ## Состав — UI_SPEC, раздел 5. Переназначение клавиш пока не делаем (решение автора).
 
 signal changed(key: String)
 
-const PATH := "user://settings.cfg"
+const UserFiles := preload("res://scripts/core/user_files.gd")
 const RESOLUTIONS: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(2560, 1440)]
 const WINDOW_MODES := ["Оконный", "Без рамки", "Полный экран"]
 const DIFFICULTIES := ["Легко", "Нормально", "Сложно"]
@@ -38,6 +38,8 @@ const DEFAULTS := {
 ## Экранный джойстик и кнопки: сами при касании экрана / всегда / никогда.
 const TOUCH_MODES := ["Авто", "Всегда", "Выкл"]
 
+## Задаётся один раз при запуске, дальше как константа.
+var PATH: String = UserFiles.path("settings.cfg")
 var values: Dictionary = DEFAULTS.duplicate()
 
 

@@ -110,6 +110,14 @@ func _on_died(_death_number: int, _lost: int) -> void:
 	t.tween_callback(func(): _busy = false)
 
 
+## Загрузка оставила Рэя над глубокой водой (окно закрыли, пока он тонул): точкой старта это место быть не может.
+## Завершаем прерванное возрождение как обычно — фонарь, без него начало локации (решение автора 2026-11-06);
+## новой смерти и потерь нет: если Рэй утонул, они уже в сохранении.
+func finish_interrupted_respawn() -> void:
+	_start_point = _player.scene_start
+	_respawn()
+
+
 func _respawn() -> void:
 	var elsewhere := _checkpoint_elsewhere()
 	if elsewhere != "":
