@@ -232,6 +232,9 @@ def main() -> None:
     parser.add_argument("--smooth", type=int, default=0,
                         help="размер фильтра «по большинству» на исходнике (нечётный, 5–15): убирает мелкую фактуру "
                              "у очень детальных генераций, оставляя крупные цветовые пятна")
+    parser.add_argument("--alpha-threshold", type=float, default=0.5,
+                        help="доля непрозрачных пикселей блока, при которой итоговый пиксель остаётся видимым. "
+                             "0.65–0.75 убирает светлую кайму по краю у генераций на белом фоне")
     parser.add_argument("--out", default="Арт/Обработано")
     args = parser.parse_args()
 
@@ -284,7 +287,7 @@ def main() -> None:
         box_rgb, box_a = downscale(rgb, alpha, size)
         for kind, mapped, small_a in (("main", mode_rgb, mode_a),
                                       ("alt", map_to_palette(box_rgb, palette), box_a)):
-            opaque = small_a >= 0.5
+            opaque = small_a >= args.alpha_threshold
             rgba = np.zeros((*opaque.shape, 4), dtype=np.uint8)
             rgba[opaque, :3] = mapped[opaque]
             rgba[opaque, 3] = 255
