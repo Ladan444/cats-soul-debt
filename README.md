@@ -8,7 +8,7 @@ HD-2D игра на Godot 4.7.2 (GDScript, Forward+).
 3. F5 — запуск с главного меню.
 
 ## Сборка для проверки
-Готовый Windows-билд лежит в разделе Releases: [последний релиз](https://github.com/Ladan444/cats-soul-debt/releases/latest).
+Готовый Windows-билд лежит в разделе Releases: [все сборки](https://github.com/Ladan444/cats-soul-debt/releases).
 Скачать архив, распаковать, запустить `CatsSoulDebt.exe`. Каждая сборка — отдельный тег `build-ГГГГ-ММ-ДД-vX.Y`.
 
 ## Где что
