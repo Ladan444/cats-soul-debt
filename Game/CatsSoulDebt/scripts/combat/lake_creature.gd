@@ -22,7 +22,7 @@ var _orbit_sign: float = 1.0
 
 func _init() -> void:
 	max_hp = 25.0
-	attack_damage = 25.0
+	attack_damage = 27.0
 	move_speed = 3.5
 	aggro_range = 8.0
 	reward_min = 3

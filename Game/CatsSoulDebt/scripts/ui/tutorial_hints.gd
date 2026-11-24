@@ -19,6 +19,7 @@ const HINTS := {
 	"move": {"text": "Идти: {move}"},
 	"interact": {"text": "{interact} — поговорить и осмотреть"},
 	"run": {"text": "Бег: {run}   Рывок: {dash}"},
+	"run_empty": {"text": "Рэй выдохся — пара секунд шагом, и бег вернётся"},
 	"attack": {"text": "Удар: {attack}"},
 	"dash": {"text": "Рывок: {dash} — уклонись от удара"},
 	"book": {"text": "Новая вещь! Книга: {inventory}"},
@@ -27,7 +28,7 @@ const HINTS := {
 	"lantern": {"text": "Фонарь душ — место возрождения. Зажги: {interact}"},
 }
 ## Очередь проверки: раньше — важнее.
-const ORDER := ["death", "lantern", "attack", "dash", "interact", "book", "map", "move", "run"]
+const ORDER := ["death", "lantern", "attack", "dash", "interact", "book", "map", "move", "run", "run_empty"]
 
 var _plank: NinePatchRect
 var _row: HBoxContainer
@@ -153,6 +154,8 @@ func _trigger(id: String) -> bool:
 			return _near(&"npcs", 2.6)
 		"run":
 			return _walked > WALK_FOR_RUN and PlayerState.is_taken("hint:move")
+		"run_empty":
+			return bool(_player.get("winded"))
 		"attack":
 			return _near(&"enemies", 9.0, true)
 		"dash":
@@ -177,6 +180,8 @@ func _satisfied(id: String) -> bool:
 			return Input.is_action_just_pressed("interact")
 		"run":
 			return Input.is_action_pressed("run") or Input.is_action_just_pressed("dash")
+		"run_empty":
+			return not bool(_player.get("winded"))
 		"attack":
 			return Input.is_action_just_pressed("attack")
 		"dash":

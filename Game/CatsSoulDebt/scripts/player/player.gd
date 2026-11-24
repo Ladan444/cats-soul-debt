@@ -4,6 +4,14 @@ extends CharacterBody3D
 
 @export var walk_speed: float = 3.5
 @export var run_speed: float = 6.0
+## Запас бега: сколько секунд Рэй бежит подряд с полного запаса и за сколько секунд он
+## восстанавливается (полностью, с нуля) и сколько ждёт перед восстановлением.
+@export var run_seconds: float = 6.0
+@export var run_recover_seconds: float = 3.0
+@export var run_recover_delay: float = 0.6
+## Доля запаса, при которой после полного выдоха бег снова доступен: без этого
+## Рэй дёргался бы между шагом и бегом на последних каплях.
+@export var run_resume_share: float = 0.25
 @export var acceleration: float = 30.0
 @export var dash_speed: float = 12.0
 @export var dash_duration: float = 0.15
@@ -77,6 +85,11 @@ var _combo_timer: float = 0.0
 
 var _hurt_time: float = 0.0
 var _invulnerable: float = 0.0
+## Запас бега (1 — полный) и «перевёл дух»: после полного выдоха бег закрыт, пока запас
+## не восстановится до run_resume_share. Шкалы нет: игрок видит только переход на шаг.
+var run_fuel: float = 1.0
+var winded: bool = false
+var _run_rest: float = 0.0
 var _knock: Vector3 = Vector3.ZERO
 var _ghost: bool = false
 var _dead: bool = false
@@ -151,7 +164,7 @@ func _physics_process(delta: float) -> void:
 	# С геймпада длина вектора < 1 при неполном наклоне стика — тогда Рэй идёт медленнее.
 	var input := Vector2.ZERO if input_locked else Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var direction := Vector3(input.x, 0.0, input.y)
-	var running := Input.is_action_pressed("run") and not input_locked
+	var running := Input.is_action_pressed("run") and not input_locked and not winded and run_fuel > 0.0
 	# Запомненное нажатие атаки живёт недолго — иначе удар «вылетает» через секунду после рывка.
 	if _queued and Time.get_ticks_msec() - _queued_at > QUEUE_MS:
 		_queued = false
@@ -197,6 +210,10 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	var sprinting := running and direction.length_squared() > 0.0 and _attack < 0 \
+			and _dash_time_left <= 0.0 and _hurt_time <= 0.0 and is_on_floor()
+	_update_run_fuel(delta, sprinting)
+
 	if _attack < 0:
 		_update_animation(running)
 	_footsteps(delta, running)
@@ -212,6 +229,28 @@ func _footsteps(delta: float, running: bool) -> void:
 	if _step_time <= 0.0:
 		_step_time = 0.27 if running else 0.4
 		Audio.play(Audio.surface_at(get_world_3d(), global_position), global_position, 0.12)
+
+
+## Запас бега: тратится, пока Рэй действительно бежит, и восстанавливается после паузы.
+## Шкалы в HUD нет — о выдохе говорит только переход на шаг и анимация ходьбы.
+func _update_run_fuel(delta: float, sprinting: bool) -> void:
+	if sprinting:
+		run_fuel = maxf(0.0, run_fuel - delta / maxf(run_seconds, 0.1))
+		_run_rest = run_recover_delay
+		if run_fuel <= 0.0:
+			winded = true
+		return
+	if winded and run_fuel >= run_resume_share:
+		winded = false
+	if run_fuel >= 1.0:
+		_run_rest = 0.0
+		return
+	_run_rest = maxf(_run_rest - delta, 0.0)
+	if _run_rest > 0.0:
+		return
+	run_fuel = minf(1.0, run_fuel + delta / maxf(run_recover_seconds, 0.1))
+	if winded and run_fuel >= run_resume_share:
+		winded = false
 
 
 func _notification(what: int) -> void:
@@ -513,6 +552,10 @@ func set_dead(value: bool) -> void:
 	_hurt_time = 0.0
 	_knock = Vector3.ZERO
 	velocity = Vector3.ZERO
+	if not value:
+		run_fuel = 1.0
+		winded = false
+		_run_rest = 0.0
 	sprite.visible = true
 	sprite.modulate = Color(0.5, 0.4, 0.6) if value else Color.WHITE
 	if not value:
