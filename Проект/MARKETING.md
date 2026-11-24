@@ -346,6 +346,36 @@ Now the first screen shows a fortress above the lake and a cat on the rocks. The
 The background is temporary for now: part of the picture was generated with AI as a draft. Final art will be drawn by human artists when we get to it.
 ```
 
+### Telegram — Dev Log #7: Камера и фоторежим [~ ждёт одобрения]
+Кадр к посту: скриншот из игры без служебной строки (у автора уже есть кадр с Рэем на тропе). Короткая версия — 995 знаков, влезает в подпись к фото (лимит 1024).
+
+```
+RU: Dev Log #7: Камера и фоторежим
+
+Всем привет! Неделя ушла на камеру.
+
+Что уже сделано:
+• Наклон, высота и приближение настраиваются отдельно
+• Камера смотрит на Рэя: высота меняет ракурс, герой в кадре
+• Виды «Диорама», «Ближе», «Сверху», «Кинематограф», V листает их по кругу
+• Панель настроек становится прозрачной, чтобы видеть кадр
+• Фоторежим по F2: свободная камера, четыре формата, сетка, шаг кадра по F3, снимки в папке screenshots
+Дальше — фокус по клику и рамки.
+__________________
+
+ENG: Dev Log #7: The camera and photo mode
+
+Hello everyone! The week went into the camera.
+
+What's done so far:
+• Tilt, height and zoom are separate settings
+• The camera aims at Ray: height changes the angle, he stays in frame
+• Views "Diorama", "Closer", "Top", "Cinematic"; V cycles through them
+• The settings panel turns translucent so you can see the shot
+• Photo mode on F2: free camera, four formats, a grid, frame step on F3, shots in the screenshots folder
+Next: click-to-focus and frames.
+```
+
 ## Трекер и статус
 
 - Бренд-кит, контент-план и банк постов — готовы как черновики, ждут одобрения автора.
