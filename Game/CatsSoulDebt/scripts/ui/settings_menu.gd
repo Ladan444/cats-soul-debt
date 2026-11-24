@@ -5,6 +5,8 @@ extends Control
 ## Общий для главного меню и паузы. Q/E или LB/RB — вкладки, Esc/B — назад.
 
 signal closed
+## Предпросмотр камеры: true — игрок на строке камеры/эффектов, панель полупрозрачна.
+signal preview_changed(on: bool)
 
 const PAPER := preload("res://assets/ui/panel_torn.png")
 const INK := Color("2a1e18")
@@ -17,6 +19,13 @@ const KEY_NAMES := {"Up": "↑", "Down": "↓", "Left": "←", "Right": "→", "
 	"Escape": "Esc", "Shift": "Shift", "Tab": "Tab"}
 const TABS := ["Изображение", "Звук", "Управление", "Игра"]
 const LOSS_TEXT := ["Потеря 50% гелиосов спуска при смерти.", "Потеря 75% гелиосов спуска при смерти.", "Потеря 90% гелиосов спуска при смерти."]
+## Строки, на которых включается предпросмотр: панель светлеет, мир за ней виден.
+const PREVIEW_LABELS := ["Вид камеры", "Наклон камеры", "Высота камеры", "Приближение",
+	"Угол обзора", "Плавность камеры", "Сила миниатюры", "Размытие по вертикали", "Блум",
+	"Виньетка", "Зерно плёнки", "Хроматика", "Сила свечения", "Пылинки в воздухе",
+	"Качество эффектов"]
+## Прозрачность пергамента в предпросмотре: текст остаётся, фон пропускает игру.
+const PREVIEW_ALPHA := 0.42
 
 ## Подписи действий для вкладки «Управление».
 const ACTION_NAMES := {
@@ -34,9 +43,14 @@ const PAD_AXES := {0: "Стик ←→", 1: "Стик ↑↓", 4: "LT", 5: "RT"}
 var _panel: NinePatchRect
 var _tab_buttons: Array[Button] = []
 var _content: VBoxContainer
+## Куда добавлять строки: обычно _content, на вкладке «Изображение» — прокручиваемый список.
+var _rows: VBoxContainer
+var _camera_preset_row: SettingRow
 var _bottom: HBoxContainer
 var _tab: int = 0
 var _difficulty_hint: Label
+var _preview_on: bool = false
+var _panel_alpha: float = 1.0
 
 
 func _ready() -> void:
@@ -57,6 +71,21 @@ func close() -> void:
 	Settings.save_settings()
 	visible = false
 	closed.emit()
+
+
+## Предпросмотр камеры: пока фокус на строке камеры или эффектов, пергамент тает,
+## и мир за панелью видно целиком. Сами настройки применяются сразу (сигнал changed).
+func _process(delta: float) -> void:
+	var row := get_viewport().gui_get_focus_owner() as SettingRow
+	var want := visible and row != null and row.label in PREVIEW_LABELS
+	if want != _preview_on:
+		_preview_on = want
+		preview_changed.emit(want)
+	var target := PREVIEW_ALPHA if _preview_on else 1.0
+	if not is_equal_approx(_panel_alpha, target):
+		_panel_alpha = move_toward(_panel_alpha, target, delta * 5.0)
+		if _panel:
+			_panel.self_modulate.a = _panel_alpha
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -178,6 +207,8 @@ func _show_tab(i: int) -> void:
 	for child in _content.get_children():
 		child.queue_free()
 	_difficulty_hint = null
+	_camera_preset_row = null
+	_rows = _content
 	match i:
 		0: _build_video()
 		1: _build_audio()
@@ -189,33 +220,117 @@ func _show_tab(i: int) -> void:
 
 func _focus_first() -> void:
 	for child in _content.get_children():
-		if child is Control and child.focus_mode != Control.FOCUS_NONE and not child.is_queued_for_deletion():
-			child.grab_focus()
+		var target := _first_focusable(child)
+		if target:
+			target.grab_focus()
 			return
 	_bottom.get_child(1).grab_focus()
 
 
+## Первая строка с фокусом: на «Изображении» строки лежат внутри прокрутки.
+func _first_focusable(node: Node) -> Control:
+	if node is Control and node.focus_mode != Control.FOCUS_NONE and not node.is_queued_for_deletion():
+		return node
+	for child in node.get_children():
+		var found := _first_focusable(child)
+		if found:
+			return found
+	return null
+
+
 func _add_row(row: SettingRow, key: String) -> SettingRow:
-	_content.add_child(row)
+	_rows.add_child(row)
 	row.value_changed.connect(func(v): Settings.set_value(key, v))
 	return row
 
 
+## Прокручиваемый список строк: на «Изображении» строк стало больше, чем помещается в панель.
+## Полосу прокрутки не рисуем (она чужая по стилю), вместо неё — подсказка «ниже есть ещё».
+func _scroll_rows() -> VBoxContainer:
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(CONTENT_W, 116)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.focus_mode = Control.FOCUS_NONE   # фокус — на строках, контейнер только прокручивает
+	scroll.follow_focus = true
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER   # своя полоса тут лишняя
+	_content.add_child(scroll)
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 3)
+	scroll.add_child(box)
+	var more := _ink_label("Ещё ниже ▼", Color("8a7350"))
+	more.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	more.custom_minimum_size.x = CONTENT_W
+	_content.add_child(more)
+	var bar := scroll.get_v_scroll_bar()
+	bar.value_changed.connect(func(_v): _update_more_hint(scroll, more))
+	box.resized.connect(func(): _update_more_hint.call_deferred(scroll, more))
+	_update_more_hint.call_deferred(scroll, more)
+	return box
+
+
+## Подсказка видна, только пока внизу остались строки.
+func _update_more_hint(scroll: ScrollContainer, more: Label) -> void:
+	var bar := scroll.get_v_scroll_bar()
+	var hidden_below := bar.max_value - scroll.size.y - bar.value
+	more.visible = hidden_below > 4.0
+
+
 func _build_video() -> void:
+	_rows = _scroll_rows()
 	var res := PackedStringArray()
 	for r in Settings.RESOLUTIONS:
 		res.append("%d×%d" % [r.x, r.y])
 	_add_row(SettingRow.make_options("Разрешение", res, Settings.get_value("resolution")), "resolution")
 	_add_row(SettingRow.make_options("Режим окна", PackedStringArray(Settings.WINDOW_MODES), Settings.get_value("window_mode")), "window_mode")
 	var vsync := SettingRow.make_options("Верт. синхронизация", PackedStringArray(["Выкл", "Вкл"]), 1 if Settings.get_value("vsync") else 0)
-	_content.add_child(vsync)
+	_rows.add_child(vsync)
 	vsync.value_changed.connect(func(v): Settings.set_value("vsync", v == 1))
 	_add_row(SettingRow.make_options("Ограничение кадров", PackedStringArray(Settings.FPS_LIMIT_NAMES), int(Settings.get_value("max_fps"))), "max_fps")
 	var scales := PackedStringArray(["×2", "×3", "×4"])
 	var scale_row := SettingRow.make_options("Масштаб интерфейса", scales, int(Settings.get_value("ui_scale")) - 2)
-	_content.add_child(scale_row)
+	_rows.add_child(scale_row)
 	scale_row.value_changed.connect(func(v): Settings.set_value("ui_scale", int(v) + 2))
 	_add_row(SettingRow.make_slider("Яркость", 0.5, 1.5, Settings.get_value("brightness")), "brightness")
+
+	# Камера (C01, C02): пресет одним кликом, дальше — тонкая настройка ползунками.
+	var names := PackedStringArray()
+	for p in Settings.CAMERA_PRESETS:
+		names.append(p["name"])
+	_camera_preset_row = SettingRow.make_options("Вид камеры", names, int(Settings.get_value("camera_preset")))
+	_rows.add_child(_camera_preset_row)
+	_camera_preset_row.value_changed.connect(func(v): Settings.apply_camera_preset(v))
+	var pitch := _add_row(SettingRow.make_slider("Наклон камеры", 20.0, 80.0, Settings.get_value("camera_pitch"), 1.0, "degrees"), "camera_pitch")
+	pitch.value_changed.connect(func(_v): _mark_custom_camera())
+	var height := _add_row(SettingRow.make_slider("Высота камеры", -2.0, 8.0, Settings.get_value("camera_height"), 0.25, "meters"), "camera_height")
+	height.value_changed.connect(func(_v): _mark_custom_camera())
+	var distance := _add_row(SettingRow.make_slider("Приближение", 6.0, 26.0, Settings.get_value("camera_distance"), 0.5, "meters"), "camera_distance")
+	distance.value_changed.connect(func(_v): _mark_custom_camera())
+	var fov_row := _add_row(SettingRow.make_slider("Угол обзора", 15.0, 60.0, Settings.get_value("camera_fov"), 1.0, "degrees"), "camera_fov")
+	fov_row.value_changed.connect(func(_v): _mark_custom_camera())
+	_add_row(SettingRow.make_slider("Плавность камеры", 0.5, 15.0, Settings.get_value("camera_smooth"), 0.5, "multiplier"), "camera_smooth")
+
+	# Миниатюра и эффекты экрана (C06–C08, C13).
+	_add_row(SettingRow.make_slider("Сила миниатюры", 0.0, 1.0, Settings.get_value("miniature")), "miniature")
+	_add_row(SettingRow.make_slider("Размытие по вертикали", 0.0, 1.0, Settings.get_value("fx_tilt")), "fx_tilt")
+	_add_row(SettingRow.make_slider("Блум", 0.0, 1.0, Settings.get_value("fx_bloom")), "fx_bloom")
+	_add_row(SettingRow.make_slider("Виньетка", 0.0, 1.0, Settings.get_value("fx_vignette")), "fx_vignette")
+	_add_row(SettingRow.make_slider("Зерно плёнки", 0.0, 1.0, Settings.get_value("fx_grain")), "fx_grain")
+	_add_row(SettingRow.make_slider("Хроматика", 0.0, 1.0, Settings.get_value("fx_chroma")), "fx_chroma")
+	_add_row(SettingRow.make_slider("Сила свечения", 0.0, 2.0, Settings.get_value("glow_strength"), 0.05, "multiplier"), "glow_strength")
+	_add_row(SettingRow.make_slider("Пылинки в воздухе", 0.0, 1.0, Settings.get_value("fx_dust")), "fx_dust")
+	_add_row(SettingRow.make_options("Качество эффектов", PackedStringArray(Settings.FX_QUALITY_NAMES), int(Settings.get_value("fx_quality"))), "fx_quality")
+	_note("Камера: V — следующий вид. Фоторежим — F2, снимок в user://screenshots.")
+
+
+## Игрок тронул ползунок камеры — пресет снова «Свои».
+func _mark_custom_camera() -> void:
+	if int(Settings.get_value("camera_preset")) == 0:
+		return
+	Settings.set_value("camera_preset", 0)
+	if _camera_preset_row:
+		_camera_preset_row.index = 0
+		_camera_preset_row.queue_redraw()
 
 
 func _build_audio() -> void:
@@ -283,7 +398,7 @@ func _note(text: String) -> Label:
 	var l := _ink_label(text, Color("8a7350"))
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD
 	l.custom_minimum_size.x = CONTENT_W
-	_content.add_child(l)
+	_rows.add_child(l)
 	return l
 
 

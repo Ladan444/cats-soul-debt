@@ -72,12 +72,19 @@ func _ready() -> void:
 		if book:
 			resume()
 			book.open_map())
+	# Фоторежим: с клавиатуры — F2, отсюда — с геймпада.
+	_item("Фоторежим", func():
+		resume()
+		PhotoMode.open())
 	_item("В главное меню", _to_main_menu)
 
 	_settings = SettingsMenu.new()
 	_settings.closed.connect(func():
 		_panel.visible = true
+		_blur.visible = true
 		_menu.get_child(3).grab_focus())
+	# Предпросмотр камеры: пока правят камеру, пауза-блюр убирается, чтобы видеть кадр.
+	_settings.preview_changed.connect(func(on: bool): _blur.visible = not on)
 	root.add_child(_settings)
 
 	visible = false

@@ -34,9 +34,39 @@ const DEFAULTS := {
 	"text_speed": 1.0,
 	"touch_controls": 0,
 	"tutorial_hints": true,
+	# Камера-диорама (C01): три независимых рычага — наклон в градусах, высота (подъём над
+	# расчётной точкой, метры) и приближение (дистанция, метры). Камера смотрит на цель,
+	# поэтому подъём поднимает взгляд, а не уводит Рэя из кадра.
+	"camera_pitch": 39.0,
+	"camera_height": 0.0,
+	"camera_distance": 14.2,
+	"camera_fov": 30.0,
+	"camera_smooth": 5.0,
+	"camera_preset": 0,
+	# Миниатюра и экранные эффекты (C06–C08, C13): 0…1.
+	"miniature": 0.8,
+	"fx_tilt": 0.45,
+	"fx_vignette": 0.25,
+	"fx_grain": 0.15,
+	"fx_chroma": 0.1,
+	"glow_strength": 1.0,
+	"fx_bloom": 0.35,
+	"fx_dust": 0.5,
+	"fx_quality": 0,
 }
 ## Экранный джойстик и кнопки: сами при касании экрана / всегда / никогда.
 const TOUCH_MODES := ["Авто", "Всегда", "Выкл"]
+## Пресеты камеры (C02): «Свои» — индекс 0, значения задают ползунки.
+const CAMERA_PRESETS := [
+	{"name": "Свои", "pitch": 39.0, "height": 0.0, "distance": 14.2, "fov": 30.0},
+	{"name": "Диорама", "pitch": 39.0, "height": 0.0, "distance": 14.2, "fov": 30.0},
+	{"name": "Ближе", "pitch": 34.0, "height": 0.0, "distance": 10.5, "fov": 32.0},
+	{"name": "Сверху", "pitch": 58.0, "height": 1.5, "distance": 13.0, "fov": 30.0},
+	{"name": "Кинематограф", "pitch": 30.0, "height": 0.0, "distance": 17.5, "fov": 22.0},
+]
+const CAMERA_PRESET_KEYS := ["camera_pitch", "camera_height", "camera_distance", "camera_fov"]
+## Качество эффектов (C13): 0 — полные, 1 — слабый ПК (без DOF, зерна, хроматики).
+const FX_QUALITY_NAMES := ["Полные", "Слабый ПК"]
 
 ## Задаётся один раз при запуске, дальше как константа.
 var PATH: String = UserFiles.path("settings.cfg")
@@ -108,7 +138,19 @@ func _apply(key: String) -> void:
 		"difficulty":
 			PlayerState.difficulty = v
 		# ui_scale и brightness читают сами UIScaler и AtmosphereBlender (сигнал changed);
-		# camera_shake, glitch_strength и text_speed — будущие системы.
+		# camera_* и miniature читает diorama_camera.gd, fx_* — автозагрузка ScreenFX,
+		# glow_strength — AtmosphereBlender (всё по сигналу changed).
+
+
+## Пресет камеры (C02): пишет наклон/дистанцию/FOV и запоминает выбранный пункт.
+func apply_camera_preset(i: int) -> void:
+	i = clampi(i, 0, CAMERA_PRESETS.size() - 1)
+	var p: Dictionary = CAMERA_PRESETS[i]
+	set_value("camera_pitch", float(p["pitch"]))
+	set_value("camera_height", float(p["height"]))
+	set_value("camera_distance", float(p["distance"]))
+	set_value("camera_fov", float(p["fov"]))
+	set_value("camera_preset", i)
 
 
 var _in_background := false

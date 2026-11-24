@@ -70,7 +70,13 @@ func _apply(x: float) -> void:
 	environment.ambient_light_energy = ambient_energy * ambient_mult
 	environment.fog_light_color = fog * fog_tint
 	environment.fog_density = fog_density
-	environment.glow_intensity = glow * glow_mult
+	environment.glow_intensity = glow * glow_mult * float(Settings.get_value("glow_strength"))
+	# Блум (C08): «мягкое свечение» всего кадра вокруг ярких мест. glow_bloom в Godot 0…1,
+	# рабочий диапазон мягкий, поэтому ползунок настройки масштабируется в 0,5.
+	var bloom := clampf(float(Settings.get_value("fx_bloom")), 0.0, 1.0)
+	environment.glow_bloom = bloom * 0.5
+	# Порог HDR: чем сильнее блум, тем раньше свет начинает «растекаться».
+	environment.glow_hdr_threshold = lerpf(1.0, 0.7, bloom)
 	environment.adjustment_saturation = saturation
 	environment.tonemap_exposure = exposure
 	# Настройка «Яркость».

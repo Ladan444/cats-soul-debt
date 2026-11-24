@@ -126,7 +126,20 @@ func _set_value(v: float) -> void:
 
 func _track_rect() -> Rect2:
 	var vx := size.x * VALUE_START
-	return Rect2(vx + 2, floorf(size.y / 2.0) - 2, size.x - vx - 30, 4)
+	var reserve := _value_width() + 4.0
+	return Rect2(vx + 2, floorf(size.y / 2.0) - 2, maxf(size.x - vx - reserve, 12.0), 4)
+
+
+## Сколько места справа оставить под значение: у метров и множителей текст длиннее.
+func _value_width() -> float:
+	match display:
+		"meters":
+			return 56.0
+		"multiplier":
+			return 46.0
+		"degrees":
+			return 34.0
+	return 44.0
 
 
 func _draw() -> void:
@@ -158,7 +171,19 @@ func _draw() -> void:
 		draw_rect(Rect2(kx + 1, track.position.y - 1, 3, 6), BRASS)
 		draw_rect(Rect2(kx + 1, track.position.y - 1, 1, 1), BRASS_LIGHT)
 		var text := ("%d%%" % roundi(value * 100.0)) if display == "percent" else ("×%.1f" % value)
-		draw_string(font, Vector2(track.end.x + 4, baseline), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, color)
+		match display:
+			"percent":
+				text = "%d%%" % roundi(value * 100.0)
+			"multiplier":
+				text = "×%.1f" % value
+			"degrees":
+				# Значок градуса шрифт Public Pixel не содержит — выводим просто число.
+				text = "%d" % roundi(value)
+			"meters":
+				text = "%.1f м" % value
+		var text_x := track.end.x + 4
+		var text_w := _value_width()
+		draw_string(font, Vector2(text_x, baseline), text, HORIZONTAL_ALIGNMENT_LEFT, text_w, 8, color)
 
 
 ## Пиксельный треугольник-стрелка высотой 5: direction -1 — влево, 1 — вправо.
