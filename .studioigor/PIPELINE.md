@@ -19,7 +19,7 @@ files: CONCEPT.md
 - [ ] interview done, concept slots filled with source tags — check: manual SKIP: concept filled from CANON and ROADMAP
 - [ ] 3–5 falsifiable pillars and anti-pillars — check: manual SKIP: четыре столпа и анти-столпы записаны в CONCEPT.md
 - [ ] story skeleton in STORY.md (or decided there is no story) — check: manual SKIP: STORY.md заполнен; полный канон — CANON.md и CHAPTER1.md
-- [ ] draft mechanics in DESIGN.md and scale in SCOPE.md — check: manual SKIP: DESIGN.md и SCOPE.md заполнены по PROGRESS.md и ROADMAP.md
+- [ ] draft mechanics in DESIGN.md and scale in SCOPE.md — check: manual SKIP: DESIGN.md и SCOPE.md заполнены по `Проект/PROGRESS.md` и ROADMAP.md
 - [ ] game designer proposed signature hooks, the user chose — check: user SKIP: игра уже имеет свои крючки: смерть, фонари, души; отдельный выбор hooks до внедрения не проводился
 - [ ] user approved the pitch card — check: user SKIP: питч утверждён автором до внедрения; evidence — IDEA.md, CANON.md, ROADMAP.md
 
@@ -41,7 +41,7 @@ files: ENV.md
 - [ ] full setup installed: engine, CLI, plugin/skills, MCP, tests, linter, export — check: python {skill}/scripts/envcheck.py --engine {engine} SKIP: Godot, Python, Blender MCP, шаблоны экспорта и тесты установлены
 - [ ] editor MCP connected: `claude mcp list` ✔ and a real tool call succeeded — check: manual SKIP: Godot MCP не используется; Blender MCP работает и проверен в работе
 - [ ] hello project: TEST and CAPTURE pass (studio.py verify) — check: grep -q "^VERIFIED: yes" .studioigor/ENV.md SKIP: TEST и CAPTURE проверены вручную; studio.py verify не запускался
-- [ ] user saw the project running on their machine — check: user SKIP: автор запускал сборку и играл; evidence — PROGRESS.md и QA_REPORT.md
+- [ ] user saw the project running on their machine — check: user SKIP: автор запускал сборку и играл; evidence — `Проект/PROGRESS.md` и QA_REPORT.md
 
 ## Phase 5 — Assets and look-dev
 files: ASSETS.md
